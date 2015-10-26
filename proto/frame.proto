@@ -1,0 +1,5 @@
+message Frame {
+  required int64 id = 1;
+  required string path = 2;
+  required bytes payload = 2;
+}

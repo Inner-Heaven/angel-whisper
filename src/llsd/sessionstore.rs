@@ -1,4 +1,4 @@
-use uuid::Uuid;
+use sodiumoxide::crypto::box_::PublicKey;
 
 pub use super::session::Session;
 
@@ -6,11 +6,11 @@ pub use super::session::Session;
 pub trait SessionStore: Clone + Send + Sync {
 
     /// Look up session by its id
-    fn find_by_uuid(&self, key: &Uuid) -> Option<Session>;
+    fn find_by_uuid(&self, key: &PublicKey) -> Option<Session>;
 
     /// Shortcut to lookup session from uuid in `&[u8]` representation
     fn find(&self, bytes: &[u8]) -> Option<Session> {
-        if let Some(_id) = Uuid::from_bytes(bytes) {
+        if let Some(_id) = PublicKey::from_slice(bytes) {
             self.find_by_uuid(&_id)
         } else {
             None

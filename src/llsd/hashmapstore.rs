@@ -1,12 +1,12 @@
 use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 
-use uuid::Uuid;
+use sodiumoxide::crypto::box_::PublicKey;
 
 use super::sessionstore::SessionStore;
 use super::session::Session;
 
-type Store = Arc<RwLock<HashMap<Uuid, RwLock<Session>>>>;
+type Store = Arc<RwLock<HashMap<PublicKey, RwLock<Session>>>>;
 pub struct HashMapStore {
    store: Store
 }
@@ -32,14 +32,14 @@ impl SessionStore for HashMapStore {
     fn insert(&self, session: Session) -> Option<()> {
         // Avoid write locks on map as hard as we can
         if session.is_valid() && !self.store.read().unwrap().contains_key(&session.id()) {
-            self.store.write().unwrap().insert(session.id(), RwLock::new(session));
+            self.store.write().unwrap().insert(session.id().clone(), RwLock::new(session));
             Some(())
         } else {
             None
         }
     }
 
-    fn find_by_uuid(&self, key: &Uuid) -> Option<Session> {
+    fn find_by_uuid(&self, key: &PublicKey) -> Option<Session> {
         if let Some(lock) = self.store.read().unwrap().get(key) {
             Some(lock.read().unwrap().clone())
         } else {
@@ -54,7 +54,6 @@ impl SessionStore for HashMapStore {
 
 #[cfg(test)]
 mod test {
-    use uuid::Uuid;
     use super::*;
     use super::super::sessionstore::SessionStore;
     use super::super::session::Session;
@@ -71,8 +70,8 @@ mod test {
     fn session_not_found() {
         let store = make_store();
 
-        let id = Uuid::new_v4();
-        assert_eq!(store.find_by_uuid(&id), None)
+        let pair = key();
+        assert_eq!(store.find_by_uuid(&pair.0), None)
     }
 
     #[test]
@@ -83,7 +82,7 @@ mod test {
 
         assert_eq!(store.insert(session.clone()), Some(()));
         assert_eq!(store.find_by_uuid(&session.id()), Some(session.clone()));
-        assert_eq!(store.find(id.as_bytes()), Some(session.clone()));
+        assert_eq!(store.find(&id.0), Some(session.clone()));
     }
 
     #[test]
@@ -105,11 +104,4 @@ mod test {
         assert_eq!(store.find_by_uuid(&session.id()), None);
     }
 
-    #[test]
-    fn insert_null() {
-        let store = make_store();
-        let session = Session::empty();
-
-        assert_eq!(store.insert(session), None);
-    }
 }

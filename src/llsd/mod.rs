@@ -1,8 +1,8 @@
 pub mod session;
-pub mod message;
+pub mod frame;
 pub mod hashmapstore;
 pub mod sessionstore;
 
-//pub use sessionstore::SessionStore;
-//pub use session::Session;
-pub use self::message::{Message, Command};
+pub use self::sessionstore::SessionStore;
+pub use self::session::Session;
+pub use self::frame::{Frame, Command};

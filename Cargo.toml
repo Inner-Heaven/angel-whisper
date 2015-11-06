@@ -1,11 +1,12 @@
 [package]
+authors = ["vagrant"]
 name = "angel-whisper"
 version = "0.1.0"
-authors = ["vagrant"]
 
 [dependencies]
-blunder       = "0.1"
-sodiumoxide   = "0.0.8"
-chrono        = "0.2"
-uuid          = "0.1"
-byteorder     = "0.3"
+blunder = "0.1"
+byteorder = "0.3"
+chrono = "0.2"
+nom = "*"
+sodiumoxide = "0.0.8"
+uuid = "0.1"

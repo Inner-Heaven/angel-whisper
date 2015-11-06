@@ -6,6 +6,7 @@ use sodiumoxide::crypto::box_::PublicKey;
 use super::sessionstore::SessionStore;
 use super::session::Session;
 
+static POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
 type Store = Arc<RwLock<HashMap<PublicKey, RwLock<Session>>>>;
 pub struct HashMapStore {
    store: Store
@@ -31,8 +32,8 @@ impl HashMapStore {
 impl SessionStore for HashMapStore {
     fn insert(&self, session: Session) -> Option<()> {
         // Avoid write locks on map as hard as we can
-        if session.is_valid() && !self.store.read().unwrap().contains_key(&session.id()) {
-            self.store.write().unwrap().insert(session.id().clone(), RwLock::new(session));
+        if session.is_valid() && !self.store.read().ok().expect(POISONED_LOCK_MSG).contains_key(&session.id()) {
+            self.store.write().ok().expect(POISONED_LOCK_MSG).insert(session.id().clone(), RwLock::new(session));
             Some(())
         } else {
             None
@@ -40,15 +41,15 @@ impl SessionStore for HashMapStore {
     }
 
     fn find_by_uuid(&self, key: &PublicKey) -> Option<Session> {
-        if let Some(lock) = self.store.read().unwrap().get(key) {
-            Some(lock.read().unwrap().clone())
+        if let Some(lock) = self.store.read().ok().expect(POISONED_LOCK_MSG).get(key) {
+            Some(lock.read().ok().expect(POISONED_LOCK_MSG).clone())
         } else {
             None
         }
     }
 
     fn destroy(&self, session: Session) {
-        self.store.write().unwrap().remove(&session.id());
+        self.store.write().ok().expect(POISONED_LOCK_MSG).remove(&session.id());
     }
 }
 

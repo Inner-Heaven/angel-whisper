@@ -3,7 +3,7 @@ extern crate sodiumoxide;
 extern crate uuid;
 extern crate chrono;
 extern crate byteorder;
-
+#[macro_use] extern crate nom;
 
 #[allow(dead_code)]
 pub mod llsd;

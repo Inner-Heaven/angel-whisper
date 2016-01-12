@@ -20,7 +20,6 @@ impl Clone for HashMapStore {
     }
 }
 
-/// Very dumb session store. Panics when insert fails.
 impl HashMapStore {
     pub fn new() -> HashMapStore {
         HashMapStore {
@@ -40,7 +39,7 @@ impl SessionStore for HashMapStore {
         }
     }
 
-    fn find_by_uuid(&self, key: &PublicKey) -> Option<Session> {
+    fn find_by_pk(&self, key: &PublicKey) -> Option<Session> {
         if let Some(lock) = self.store.read().ok().expect(POISONED_LOCK_MSG).get(key) {
             Some(lock.read().ok().expect(POISONED_LOCK_MSG).clone())
         } else {
@@ -72,7 +71,7 @@ mod test {
         let store = make_store();
 
         let pair = key();
-        assert_eq!(store.find_by_uuid(&pair.0), None)
+        assert_eq!(store.find_by_pk(&pair.0), None)
     }
 
     #[test]
@@ -82,7 +81,7 @@ mod test {
         let id = session.id().clone();
 
         assert_eq!(store.insert(session.clone()), Some(()));
-        assert_eq!(store.find_by_uuid(&session.id()), Some(session.clone()));
+        assert_eq!(store.find_by_pk(&session.id()), Some(session.clone()));
         assert_eq!(store.find(&id.0), Some(session.clone()));
     }
 
@@ -102,7 +101,7 @@ mod test {
 
         assert_eq!(store.insert(session.clone()), Some(()));
         store.destroy(session.clone());
-        assert_eq!(store.find_by_uuid(&session.id()), None);
+        assert_eq!(store.find_by_pk(&session.id()), None);
     }
 
 }

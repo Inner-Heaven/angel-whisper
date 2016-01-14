@@ -1,8 +1,8 @@
 use chrono::{DateTime, UTC, Duration};
 use sodiumoxide::crypto::box_;
 
-use llsd::request::{Request, Payload};
-
+use llsd::request::{Request};
+use llsd::errors::{LlsdResult, LlsdErrorKind};
 /// Array of null bytes used in Hello package. It's big to prevent amplifiction attacks.
 pub static NULL_BYTES: [u8; 256] = [b'\x00'; 256];
 
@@ -59,16 +59,8 @@ impl Session {
     }
 
 
-    /// Helper function used to generate Requests. Maybe this should exist outside of Session...
-    pub fn make_request(&self, payload: Payload) -> Request {
-        match payload {
-            Payload::Hello(_) => self.hello(),
-            _ => unimplemented!()
-        }
-    }
-
     /// Helper to make Hello frame
-    fn hello(&self) -> Request {
+    pub fn make_hello(&self) -> Request {
         let nonce = box_::gen_nonce();
         let payload = box_::seal(&NULL_BYTES, &nonce, &self.peer_lt_pk, &self.st.1);
         Request {
@@ -77,6 +69,13 @@ impl Session {
             payload: payload
         }
     }
+    /// Helper to make ello frame (reply to Hello)
+    pub fn make_ello(&self, hello: Request) -> LlsdResult<Request> {
+        if self.state != SessionState::Fresh {
+            fail!(LlsdErrorKind::InvalidState)
+        }
+        unimplemented!()
+    }
 
 }
 
@@ -84,14 +83,14 @@ impl Session {
 mod test {
     use sodiumoxide::crypto::box_::{gen_keypair, open};
 
-    use llsd::request::{Request, Payload};
+    use llsd::request::{Request};
     use super::{Session};
     #[test]
     fn create_and_pack_hello() {
         let key = gen_keypair();
         let session = Session::new(key.0);
 
-        let msg: Request = session.make_request(Payload::Hello(Vec::new()));
+        let msg: Request = session.make_hello();
         let bytes = msg.pack();
 
         let parsed = Request::from_slice(&bytes).unwrap();

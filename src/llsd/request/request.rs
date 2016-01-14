@@ -6,12 +6,6 @@ use llsd::session::Session;
 use super::parser::parse_request;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Payload {
-    Hello(Vec<u8>),
-    Initiate
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct Request {
     /// Session identificator. 32 bytes
     pub id: PublicKey,

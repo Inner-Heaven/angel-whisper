@@ -1,7 +1,7 @@
 use chrono::{DateTime, UTC, Duration};
 use sodiumoxide::crypto::box_;
 
-use llsd::request::{Request};
+use llsd::frames::{Frame, FrameKind};
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 /// Array of null bytes used in Hello package. It's big to prevent amplifiction attacks.
 pub static NULL_BYTES: [u8; 256] = [b'\x00'; 256];
@@ -60,17 +60,18 @@ impl Session {
 
 
     /// Helper to make Hello frame
-    pub fn make_hello(&self) -> Request {
+    pub fn make_hello(&self) -> Frame {
         let nonce = box_::gen_nonce();
         let payload = box_::seal(&NULL_BYTES, &nonce, &self.peer_lt_pk, &self.st.1);
-        Request {
+        Frame {
             id: self.st.0.clone(),
             nonce: nonce,
+            kind: FrameKind::Hello,
             payload: payload
         }
     }
     /// Helper to make ello frame (reply to Hello)
-    pub fn make_ello(&self, hello: Request) -> LlsdResult<Request> {
+    pub fn make_ello(&self, hello: Frame) -> LlsdResult<Frame> {
         if self.state != SessionState::Fresh {
             fail!(LlsdErrorKind::InvalidState)
         }
@@ -81,22 +82,4 @@ impl Session {
 
 #[cfg(test)]
 mod test {
-    use sodiumoxide::crypto::box_::{gen_keypair, open};
-
-    use llsd::request::{Request};
-    use super::{Session};
-    #[test]
-    fn create_and_pack_hello() {
-        let key = gen_keypair();
-        let session = Session::new(key.0);
-
-        let msg: Request = session.make_hello();
-        let bytes = msg.pack();
-
-       /* let parsed = Request::from_slice(&bytes).unwrap();
-        assert_eq!(parsed, msg);
-
-        let payload = open(&parsed.payload, &parsed.nonce, &parsed.id, &key.1).unwrap();
-        assert_eq!(payload, vec![b'\x00'; 256]);*/
-    }
 }

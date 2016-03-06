@@ -4,7 +4,7 @@ use sodiumoxide::crypto::box_::{Nonce, PublicKey};
 use byteorder::{WriteBytesExt};
 use nom::{rest, IResult};
 
-use ::errors::{AWResult, AWErrorKind};
+use llsd::errors::{LlsdResult, LlsdErrorKind};
 
 pub const HEADER_SIZE: usize = 57;
 
@@ -64,10 +64,10 @@ impl Frame {
         frame
     }
 
-    pub fn from_slice(i: &[u8]) -> AWResult<Frame> {
+    pub fn from_slice(i: &[u8]) -> LlsdResult<Frame> {
         match parse_frame(i) {
             IResult::Done(_, frame) => Ok(frame),
-            _                       => fail!(AWErrorKind::BadFrame)
+            _                       => fail!(LlsdErrorKind::BadFrame)
         }
     }
 }
@@ -98,6 +98,8 @@ mod test {
     use sodiumoxide::crypto::box_::{gen_keypair, gen_nonce};
     use super::*;
 
+    use llsd::errors::LlsdErrorKind;
+
     #[test]
     fn pack_and_unpack() {
         let frame = make_frame();
@@ -110,13 +112,14 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn malformed_frame() {
         let packed_frame = vec![1 as u8, 2,3];
 
         let parsed_frame = Frame::from_slice(&packed_frame);
 
-        parsed_frame.unwrap();
+        assert_eq!(parsed_frame.is_err(), true);
+        let err = parsed_frame.err().unwrap();
+        assert_eq!(*err, LlsdErrorKind::BadFrame);
     }
 
     fn make_frame() -> Frame {

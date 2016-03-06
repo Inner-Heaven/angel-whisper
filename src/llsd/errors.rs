@@ -15,7 +15,7 @@ pub enum LlsdErrorKind {
     MessageTooBig,
     DecryptionFailed,
     UnknownClient,
-    UnknownFrameKind,
+    BadFrame,
     IncorectSize,
     SessionExpired,
     InvalidState

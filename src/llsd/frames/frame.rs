@@ -4,6 +4,8 @@ use sodiumoxide::crypto::box_::{Nonce, PublicKey};
 use byteorder::{WriteBytesExt};
 use nom::{rest, IResult};
 
+use ::errors::{AWResult, AWErrorKind};
+
 pub const HEADER_SIZE: usize = 57;
 
 #[derive(Debug, Clone, PartialEq, Copy)]
@@ -62,10 +64,10 @@ impl Frame {
         frame
     }
 
-    pub fn from_slice(i: &[u8]) -> Option<Frame> {
+    pub fn from_slice(i: &[u8]) -> AWResult<Frame> {
         match parse_frame(i) {
-            IResult::Done(_, frame) => Some(frame),
-            _                       => None
+            IResult::Done(_, frame) => Ok(frame),
+            _                       => fail!(AWErrorKind::BadFrame)
         }
     }
 }
@@ -108,12 +110,13 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
     fn malformed_frame() {
         let packed_frame = vec![1 as u8, 2,3];
 
         let parsed_frame = Frame::from_slice(&packed_frame);
 
-        assert_eq!(parsed_frame, None);
+        parsed_frame.unwrap();
     }
 
     fn make_frame() -> Frame {

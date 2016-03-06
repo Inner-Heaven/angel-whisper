@@ -7,7 +7,7 @@ pub type AWError = Blunder<AWErrorKind>;
 
 #[derive(Debug, PartialEq)]
 pub enum AWErrorKind {
-    BadFrame = 1,
+    BadFrame,
     IncorrectState,
     CannotDecrypt,
     NotImplemented,
@@ -16,7 +16,7 @@ pub enum AWErrorKind {
 impl Error for AWErrorKind {
     fn description(&self) -> &str {
         match *self {
-            AWErrorKind::BadFrame         => "Could not parse frame",
+            AWErrorKind::BadFrame      => "Could not parse frame",
             AWErrorKind::CannotDecrypt    => "Secured payload of the frame cannot be decrypted",
             AWErrorKind::NotImplemented   => "Action not implemented",
             AWErrorKind::IncorrectState   => "Received frame cannot be applies to sesion. For example, sending hello frame when session is in READY state"

@@ -3,7 +3,6 @@ use sodiumoxide::crypto::box_::gen_nonce;
 use nom::{IResult};
 
 use llsd::session::Session;
-use super::parser::parse_request;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Request {
@@ -26,10 +25,4 @@ impl Request {
         frame
     }
 
-    pub fn from_slice(i: &[u8]) -> Option<Request> {
-        match parse_request(i) {
-            IResult::Done(_, request)    => Some(request),
-            _                   => None
-        }
-    }
 }

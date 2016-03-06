@@ -4,6 +4,7 @@ pub mod sessionstore;
 pub mod authenticator;
 pub mod request;
 pub mod errors;
+pub mod frames;
 
 pub use self::sessionstore::SessionStore;
 pub use self::session::Session;

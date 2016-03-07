@@ -11,12 +11,10 @@ pub type LlsdResult<T> = Result<T,LlsdError>;
 
 #[derive(Debug, PartialEq)]
 pub enum LlsdErrorKind {
-    AuthenticationFailed,
+    HandshakeFailed,
     MessageTooBig,
-    DecryptionFailed,
     UnknownClient,
     BadFrame,
-    IncorectSize,
     SessionExpired,
     InvalidState
 }

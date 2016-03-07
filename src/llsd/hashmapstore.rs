@@ -6,7 +6,8 @@ use sodiumoxide::crypto::box_::PublicKey;
 use super::sessionstore::SessionStore;
 use super::session::Session;
 
-static POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
+const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
+
 type Store = Arc<RwLock<HashMap<PublicKey, RwLock<Session>>>>;
 pub struct HashMapStore {
    store: Store

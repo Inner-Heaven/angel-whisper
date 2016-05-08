@@ -8,7 +8,7 @@ use super::session::Session;
 
 const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
 
-type Store = Arc<RwLock<HashMap<PublicKey, RwLock<Session>>>>;
+type Store = Arc<RwLock<HashMap<PublicKey, Arc<RwLock<Session>>>>>;
 pub struct HashMapStore {
    store: Store
 }
@@ -29,27 +29,29 @@ impl HashMapStore {
     }
 }
 
-impl SessionStore for HashMapStore {
-    fn insert(&self, session: Session) -> Option<()> {
+    impl SessionStore for HashMapStore {
+        fn insert(&self, session: Session) -> Option<()> {
         // Avoid write locks on map as hard as we can
         if session.is_valid() && !self.store.read().ok().expect(POISONED_LOCK_MSG).contains_key(&session.id()) {
-            self.store.write().ok().expect(POISONED_LOCK_MSG).insert(session.id().clone(), RwLock::new(session));
+            println!("Inserting {:?}", session);
+            self.store.write().ok().expect(POISONED_LOCK_MSG).insert(session.id().clone(), Arc::new(RwLock::new(session)));
             Some(())
         } else {
+            println!("failed insert");
             None
         }
     }
 
-    fn find_by_pk(&self, key: &PublicKey) -> Option<Session> {
+    fn find_by_pk(&self, key: &PublicKey) -> Option<Arc<RwLock<Session>>> {
         if let Some(lock) = self.store.read().ok().expect(POISONED_LOCK_MSG).get(key) {
-            Some(lock.read().ok().expect(POISONED_LOCK_MSG).clone())
+            Some(lock.clone())
         } else {
             None
         }
     }
 
-    fn destroy(&self, session: Session) {
-        self.store.write().ok().expect(POISONED_LOCK_MSG).remove(&session.id());
+    fn destroy(&self, key: &PublicKey) {
+        self.store.write().ok().expect(POISONED_LOCK_MSG).remove(key);
     }
 }
 
@@ -72,24 +74,28 @@ mod test {
         let store = make_store();
 
         let pair = key();
-        assert_eq!(store.find_by_pk(&pair.0), None)
+        assert!(store.find_by_pk(&pair.0).is_none())
     }
 
     #[test]
     fn create_and_read() {
         let store = make_store();
-        let session = Session::new(key().0);
+        let session = Session::client_session(key().0);
         let id = session.id().clone();
 
         assert_eq!(store.insert(session.clone()), Some(()));
-        assert_eq!(store.find_by_pk(&session.id()), Some(session.clone()));
-        assert_eq!(store.find(&id.0), Some(session.clone()));
+        let subject1 = store.find_by_pk(&id).unwrap();
+        let subj1_guard = subject1.read().unwrap();
+        assert_eq!(*subj1_guard, session);
+        let subject2 =  store.find(&id.0).unwrap();
+        let subj2_guard = subject2.read().unwrap();
+        assert_eq!(subj2_guard.id(), session.id());
     }
 
     #[test]
     fn insert_twice() {
         let store = make_store();
-        let session = Session::new(key().0);
+        let session = Session::client_session(key().0);
 
         assert_eq!(store.insert(session.clone()), Some(()));
         assert_eq!(store.insert(session.clone()), None);
@@ -98,11 +104,12 @@ mod test {
     #[test]
     fn remove() {
         let store = make_store();
-        let session = Session::new(key().0);
+        let session = Session::client_session(key().0);
 
         assert_eq!(store.insert(session.clone()), Some(()));
-        store.destroy(session.clone());
-        assert_eq!(store.find_by_pk(&session.id()), None);
+        store.destroy(&session.id());
+        let subject = store.find_by_pk(&session.id());
+        assert!(subject.is_none());
     }
 
 }

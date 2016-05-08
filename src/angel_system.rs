@@ -1,21 +1,22 @@
 use sodiumoxide::crypto::box_::{SecretKey, PublicKey};
 
-use llsd::request::{Request, RequestHeader, RequestPayload};
+use llsd::frames::{Frame, FrameKind};
+use llsd::session::Session;
 use llsd::sessionstore::SessionStore;
 use llsd::authenticator::Authenticator;
-use errors::{AWResult, AWError};
+use errors::{AWResult, AWErrorKind};
 
 type Response = Vec<u8>;
 
-struct AngelSystem<S: SessionStore, A: Authenticator>   {
+pub struct AngelSystem<S: SessionStore, A: Authenticator>   {
     sessions: S,
     authenticator: A,
     public_key: PublicKey,
     secret_key: SecretKey
 }
 
-impl Clone for AngelSystem {
-    fn clone(&self) -> AngelSystem {
+impl <S: SessionStore, A: Authenticator> Clone for AngelSystem<S,A>{
+    fn clone(&self) -> AngelSystem<S,A> {
         AngelSystem {
             sessions: self.sessions.clone(),
             authenticator: self.authenticator.clone(),
@@ -25,16 +26,45 @@ impl Clone for AngelSystem {
     }
 }
 
-impl AngelSystem {
-    pub fn process(&self, req: Request) -> AWResult<Response> {
-        unimplemented!();
+impl <S: SessionStore, A: Authenticator> AngelSystem<S,A>{
+
+    pub fn new(store: S, authenticator: A, pk: PublicKey, sk: SecretKey) -> AngelSystem<S,A> {
+        AngelSystem {
+            sessions: store,
+            authenticator: authenticator,
+            public_key: pk,
+            secret_key: sk
+        }
     }
 
-    fn process_hello(&self, frame: &Request) -> AWResult<Response> {
-        if let Some(_) = self.sessions.insert(&frame.pk) {
-            fail!(AWError::IncorrectState)
-        } else {
-            unimplemented!();
+    pub fn process(&self, req: Frame) -> AWResult<Frame> {
+        match req.kind {
+            FrameKind::Hello => self.process_hello(&req),
+            _                => unimplemented!()
         }
+    }
+
+    fn process_hello(&self, frame: &Frame) -> AWResult<Frame> {
+        // Verify it's a new session
+        if let Some(_) = self.sessions.find_by_pk(&frame.id) {
+            println!("wat");
+            fail!(AWErrorKind::IncorrectState);
+        }
+        let session = Session::server_session(frame.id.clone());
+        println!("Session in System: {:?}", session);
+        self.sessions.insert(session);
+        let wat = self.sessions.find_by_pk(&frame.id);
+        println!("Frame: {:?}\nSession:{:?}", frame, wat);
+        if let Some(session_lock) = self.sessions.find_by_pk(&frame.id) {
+            println!("lookup");
+            let session_guard = session_lock.write();
+            if let Ok(mut session) = session_guard {
+                match session.make_welcome(&frame, &self.secret_key) {
+                    Ok(frame) => return Ok(frame),
+                    Err(e)  => fail!(AWErrorKind::HandshakeFailed(Some(e)))
+                }
+            }
+        }
+        fail!(AWErrorKind::ServerFault);
     }
 }

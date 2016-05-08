@@ -31,23 +31,32 @@ pub struct Session {
     st: (box_::PublicKey, box_::SecretKey),
     /// This key should be know once session transitions to Ready state.
     peer_pk: Option<box_::PublicKey>,
-    peer_lt_pk: box_::PublicKey,
+    peer_lt_pk: Option<box_::PublicKey>,
     state: SessionState
 }
 
 impl Session {
     /// The only proper construction function you should use. Please note that local _long-term_ keys are not part of the sesion.
-    pub fn new(peer_lt_pk: box_::PublicKey) -> Session {
+    pub fn client_session(peer_lt_pk: box_::PublicKey) -> Session {
         Session {
             expire_at: UTC::now() + Duration::minutes(34),
             created_at: UTC::now(),
             state: SessionState::Fresh,
             st: box_::gen_keypair(),
             peer_pk: None,
-            peer_lt_pk: peer_lt_pk
+            peer_lt_pk: Some(peer_lt_pk)
         }
     }
-
+    pub fn server_session(peer_pk: box_::PublicKey) -> Session {
+        Session {
+            expire_at: UTC::now() + Duration::minutes(34),
+            created_at: UTC::now(),
+            state: SessionState::Fresh,
+            st: box_::gen_keypair(),
+            peer_pk: Some(peer_pk),
+            peer_lt_pk: None
+        }
+    }
     /// Shortcut to verify that session is not expired
     pub fn is_valid(&self) -> bool {
         self.expire_at > UTC::now()
@@ -59,15 +68,15 @@ impl Session {
     }
 
     /// Getter for short-term public key
-    pub fn id(&self) -> &box_::PublicKey {
-        &self.st.0
+    pub fn id(&self) -> Option<&box_::PublicKey> {
+        &self.peer_pk
     }
 
 
     /// Helper to make Hello frame. Client workflow.
     pub fn make_hello(&self) -> Frame {
         let nonce = box_::gen_nonce();
-        let payload = box_::seal(&NULL_BYTES, &nonce, &self.peer_lt_pk, &self.st.1);
+        let payload = box_::seal(&NULL_BYTES, &nonce, &self.peer_lt_pk.unwrap(), &self.st.1);
         Frame {
             id: self.st.0.clone(),
             nonce: nonce,
@@ -112,7 +121,7 @@ impl Session {
             fail!(LlsdErrorKind::InvalidState)
         }
         // Try to obtain server short public key from the box.
-        if let Ok(server_pk) = box_::open(&welcome.payload, &welcome.nonce, &self.peer_lt_pk, &self.st.1) {
+        if let Ok(server_pk) = box_::open(&welcome.payload, &welcome.nonce, &self.peer_lt_pk.unwrap(), &self.st.1) {
             if let Some(key) = box_::PublicKey::from_slice(&server_pk) {
                 self.peer_pk = Some(key);
                 let mut initiate_box = Vec::with_capacity(32);
@@ -120,7 +129,7 @@ impl Session {
                 initiate_box.extend(self.vouch(our_sk));
 
                 let nonce = box_::gen_nonce();
-                let payload = box_::seal(&initiate_box, &nonce, &self.peer_pk.unwrap(), &self.st.1);
+                let payload = box_::seal(&initiate_box, &nonce, &self.peer_pk.expect("Shit is on fire yo"), &self.st.1);
                 let frame = Frame {
                     id: welcome.id.clone(),
                     nonce: nonce,
@@ -142,15 +151,15 @@ impl Session {
     /// A helper to extract client's permamanet public key from initiate frame in order to
     /// authenticate client. Authentication happens in another place.
     pub fn validate_initiate(&self, initiate: &Frame) -> Option<box_::PublicKey> {
-        if let Ok(initiate_payload) = box_::open(&initiate.payload, &initiate.nonce, &self.peer_pk.unwrap(), &self.st.1) {
+        if let Ok(initiate_payload) = box_::open(&initiate.payload, &initiate.nonce, &self.peer_pk.expect("Shit is on fire yo"), &self.st.1) {
             // TODO: change to != with proper size
             if initiate_payload.len() < 60 {
                 return None;
             }
             // unwrapping here because they only panic when input is shorter than needed.
             // TODO: slice that bitch properly
-            let pk      = box_::PublicKey::from_slice(&initiate_payload[0..31]).unwrap();
-            let v_nonce = box_::Nonce::from_slice(&initiate_payload[32..56]).unwrap();
+            let pk      = box_::PublicKey::from_slice(&initiate_payload[0..31]).expect("Shit is on fire yo");
+            let v_nonce = box_::Nonce::from_slice(&initiate_payload[32..56]).expect("Shit is on fire yo");
             let v_box   = &initiate_payload[57..initiate_payload.len() - 1];
 
             if let Ok(vouch_payload) = box_::open(&v_box, &v_nonce, &pk, &self.st.1) {
@@ -167,6 +176,11 @@ impl Session {
     pub fn make_ready(&mut self, initiate: &Frame) -> LlsdResult<Frame> {
         if self.state != SessionState::Fresh || initiate.kind != FrameKind::Initiate {
             fail!(LlsdErrorKind::InvalidState)
+        }
+
+        // If client spend more than 3 minutes to come up with intiate, fuck that slowpoke.
+        if (self.created_at - UTC::now()) > Duration::minutes(3) {
+            fail!(LlsdErrorKind::HandshakeFailed)
         }
         self.state = SessionState::Ready;
         let (nonce, payload) = self.seal_msg(b"My body is ready");

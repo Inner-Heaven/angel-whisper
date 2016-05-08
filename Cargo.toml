@@ -1,6 +1,6 @@
 [package]
-authors = ["vagrant"]
-name = "angel-whisper"
+authors = ["Andrey Cherkashin"]
+name = "angel_whisper"
 version = "0.1.0"
 
 [dependencies]

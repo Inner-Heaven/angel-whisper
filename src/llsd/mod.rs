@@ -7,4 +7,3 @@ pub mod errors;
 pub mod frames;
 
 pub use self::sessionstore::SessionStore;
-pub use self::session::Session;

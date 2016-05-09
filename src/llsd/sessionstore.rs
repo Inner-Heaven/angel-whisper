@@ -1,8 +1,7 @@
 use sodiumoxide::crypto::box_::PublicKey;
 use std::sync::{Arc, RwLock};
 
-pub use super::session::Session;
-
+pub use super::session::server::Session;
 /// This `Trait` defines session storage.
 pub trait SessionStore: Clone + Send + Sync {
 

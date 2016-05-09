@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use sodiumoxide::crypto::box_::PublicKey;
 
 use super::sessionstore::SessionStore;
-use super::session::Session;
+use super::session::server::Session;
+use super::session::Sendable;
 
 const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
 
@@ -33,11 +34,9 @@ impl HashMapStore {
         fn insert(&self, session: Session) -> Option<()> {
         // Avoid write locks on map as hard as we can
         if session.is_valid() && !self.store.read().ok().expect(POISONED_LOCK_MSG).contains_key(&session.id()) {
-            println!("Inserting {:?}", session);
             self.store.write().ok().expect(POISONED_LOCK_MSG).insert(session.id().clone(), Arc::new(RwLock::new(session)));
             Some(())
         } else {
-            println!("failed insert");
             None
         }
     }
@@ -59,7 +58,8 @@ impl HashMapStore {
 mod test {
     use super::*;
     use super::super::sessionstore::SessionStore;
-    use super::super::session::Session;
+    use super::super::session::server::Session;
+    use super::super::session::Sendable;
     use sodiumoxide::crypto::box_;
 
     fn make_store() -> HashMapStore {
@@ -80,7 +80,7 @@ mod test {
     #[test]
     fn create_and_read() {
         let store = make_store();
-        let session = Session::client_session(key().0);
+        let session = Session::new(key().0);
         let id = session.id().clone();
 
         assert_eq!(store.insert(session.clone()), Some(()));
@@ -95,7 +95,7 @@ mod test {
     #[test]
     fn insert_twice() {
         let store = make_store();
-        let session = Session::client_session(key().0);
+        let session = Session::new(key().0);
 
         assert_eq!(store.insert(session.clone()), Some(()));
         assert_eq!(store.insert(session.clone()), None);
@@ -104,7 +104,7 @@ mod test {
     #[test]
     fn remove() {
         let store = make_store();
-        let session = Session::client_session(key().0);
+        let session = Session::new(key().0);
 
         assert_eq!(store.insert(session.clone()), Some(()));
         store.destroy(&session.id());

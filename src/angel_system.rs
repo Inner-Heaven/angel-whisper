@@ -1,7 +1,7 @@
 use sodiumoxide::crypto::box_::{SecretKey, PublicKey};
 
 use llsd::frames::{Frame, FrameKind};
-use llsd::session::Session;
+use llsd::session::server::Session;
 use llsd::sessionstore::SessionStore;
 use llsd::authenticator::Authenticator;
 use errors::{AWResult, AWErrorKind};
@@ -50,7 +50,7 @@ impl <S: SessionStore, A: Authenticator> AngelSystem<S,A>{
             println!("wat");
             fail!(AWErrorKind::IncorrectState);
         }
-        let session = Session::server_session(frame.id.clone());
+        let session = Session::new(frame.id.clone());
         println!("Session in System: {:?}", session);
         self.sessions.insert(session);
         let wat = self.sessions.find_by_pk(&frame.id);

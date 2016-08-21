@@ -5,8 +5,8 @@ version = "0.1.0"
 
 [dependencies]
 blunder = "0.1"
-byteorder = "0.4"
+byteorder = "0.5"
 chrono = "0.2"
 nom = "1.2"
-sodiumoxide = "0.0.9"
-uuid = "0.1"
+sodiumoxide = "0.0.12"
+uuid = "0.3"

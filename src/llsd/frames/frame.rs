@@ -57,9 +57,9 @@ impl Frame {
         let mut kind = Vec::with_capacity(1);
         // Unwrap here makes sense, amirite?
         kind.write_u8(self.kind.clone() as u8).unwrap();
-        frame.extend(self.id.0.iter().cloned());
-        frame.extend(self.nonce.0.iter().cloned());
-        frame.extend(kind.clone());
+        frame.extend_from_slice(&self.id.0);
+        frame.extend_from_slice(&self.nonce.0);
+        frame.extend(kind);
         frame.extend(self.payload.clone());
         frame
     }

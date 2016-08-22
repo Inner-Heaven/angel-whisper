@@ -47,16 +47,16 @@ impl <S: SessionStore, A: Authenticator> AngelSystem<S,A>{
     fn process_hello(&self, frame: &Frame) -> AWResult<Frame> {
         // Verify it's a new session
         if let Some(_) = self.sessions.find_by_pk(&frame.id) {
-            println!("wat");
             fail!(AWErrorKind::IncorrectState);
         }
         let session = Session::new(frame.id);
-        println!("Session in System: {:?}", session);
-        self.sessions.insert(session);
-        let wat = self.sessions.find_by_pk(&frame.id);
-        println!("Frame: {:?}\nSession:{:?}", frame, wat);
+
+        // If inserting session failed - bail out early.
+        if let None = self.sessions.insert(session) {
+            fail!(AWErrorKind::ServerFault);
+        }
+
         if let Some(session_lock) = self.sessions.find_by_pk(&frame.id) {
-            println!("lookup");
             let session_guard = session_lock.write();
             if let Ok(mut session) = session_guard {
                 match session.make_welcome(frame, &self.secret_key) {
@@ -64,6 +64,8 @@ impl <S: SessionStore, A: Authenticator> AngelSystem<S,A>{
                     Err(e)  => fail!(AWErrorKind::HandshakeFailed(Some(e)))
                 }
             }
+        } else {
+            fail!(AWErrorKind::HandshakeFailed(None))
         }
         fail!(AWErrorKind::ServerFault);
     }

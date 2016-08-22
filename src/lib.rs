@@ -8,7 +8,7 @@ extern crate byteorder;
 #[allow(dead_code)]
 pub mod llsd;
 pub use llsd::session::client::Session as ClientSession;
-pub use llsd::session::server::Session as ServerSssion;
+pub use llsd::session::server::Session as ServerSession;
 pub use llsd::frames::{Frame, FrameKind};
 pub mod errors;
 

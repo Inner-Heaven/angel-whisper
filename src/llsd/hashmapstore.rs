@@ -35,10 +35,14 @@ impl SessionStore for HashMapStore {
     }
 
     fn find_by_pk(&self, key: &PublicKey) -> Option<Arc<RwLock<Session>>> {
-        if let Some(lock) = self.store.read().expect(POISONED_LOCK_MSG).get(key) {
-            Some(lock.clone())
+        if let Ok(store) = self.store.read() {
+            if let Some(session_lock) = store.get(key) {
+                Some(session_lock.clone())
+            } else {
+                None
+            }
         } else {
-            None
+            panic!(POISONED_LOCK_MSG);
         }
     }
 
@@ -64,7 +68,7 @@ mod test {
     use sodiumoxide::crypto::box_;
 
     fn make_store() -> HashMapStore {
-        HashMapStore::new()
+        HashMapStore::default()
     }
 
     fn key() -> (box_::PublicKey, box_::SecretKey) {

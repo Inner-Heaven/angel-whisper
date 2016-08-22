@@ -115,7 +115,7 @@ impl Session {
 }
 impl Sendable for Session {
     fn id(&self) -> PublicKey {
-        self.st.0
+        self.client_pk
     }
 
     fn can_send(&self) -> bool {

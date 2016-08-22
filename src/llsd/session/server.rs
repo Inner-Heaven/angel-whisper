@@ -21,6 +21,8 @@ pub struct Session {
 }
 
 impl Session {
+    /// Create new server side session. Only requires client short-term public key. Server
+    /// long-term pair stored in session manager or else where.
     pub fn new(client_pk: PublicKey) -> Session {
         Session {
             expire_at: UTC::now() + Duration::minutes(34),
@@ -31,7 +33,7 @@ impl Session {
             client_lt_pk: None
         }
     }
-    /// Shortcut to verify that session is not expired
+    /// Verify that session is not expired
     pub fn is_valid(&self) -> bool {
         self.expire_at > UTC::now()
     }
@@ -42,7 +44,7 @@ impl Session {
             fail!(LlsdErrorKind::InvalidState)
         }
         // Verify content of the box
-        if let Ok(payload) = open(&hello.payload, &hello.nonce, &hello.id, &our_sk) {
+        if let Ok(payload) = open(&hello.payload, &hello.nonce, &hello.id, our_sk) {
             // We're not going to verify that box content itself, but will verify it's length since
             // that is what matters the most.
             if payload.len() != 256 {
@@ -50,11 +52,11 @@ impl Session {
                 fail!(LlsdErrorKind::HandshakeFailed);
             }
             let nonce = gen_nonce();
-            let welcome_box = seal(self.st.0.as_ref(), &nonce, &hello.id, &our_sk);
+            let welcome_box = seal(self.st.0.as_ref(), &nonce, &hello.id, our_sk);
 
             let welcome_frame = Frame {
                 // Server uses client id in reply.
-                id: hello.id.clone(),
+                id: hello.id,
                 nonce: nonce,
                 kind: FrameKind::Welcome,
                 payload: welcome_box
@@ -79,14 +81,14 @@ impl Session {
             let v_nonce = Nonce::from_slice(&initiate_payload[32..56]).expect("Failed to slice nonce from payload");
             let v_box   = &initiate_payload[56..initiate_payload.len()];
 
-            if let Ok(vouch_payload) = open(&v_box, &v_nonce, &pk, &self.st.1) {
+            if let Ok(vouch_payload) = open(v_box, &v_nonce, &pk, &self.st.1) {
                 let v_pk = PublicKey::from_slice(&vouch_payload).expect("Wrong Size Key!!!");
                 if vouch_payload.len() == 32 || v_pk == self.client_pk {
                     return Some(pk);
                 }
             }
         }
-        return None;
+        None
     }
 
     /// Helper to make a Ready frame, a reply to Initiate frame. Server workflow.
@@ -95,15 +97,15 @@ impl Session {
             fail!(LlsdErrorKind::InvalidState)
         }
 
-        // If client spend more than 3 minutes to come up with intiate, fuck that slowpoke.
+        // If client spend more than 3 minutes to come up with initiate - fuck him.
         if (self.created_at - UTC::now()) > Duration::minutes(3) {
             fail!(LlsdErrorKind::HandshakeFailed)
         }
         self.state = SessionState::Ready;
-        self.client_lt_pk = Some(client_lt_pk.clone());
+        self.client_lt_pk = Some(*client_lt_pk);
         let (nonce, payload) = self.seal_msg(b"My body is ready");
         let frame = Frame {
-            id: initiate.id.clone(),
+            id: initiate.id,
             nonce: nonce,
             kind: FrameKind::Ready,
             payload: payload
@@ -122,7 +124,7 @@ impl Sendable for Session {
 
     fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>) {
         let nonce = gen_nonce();
-        let payload = seal(&data, &nonce, &self.client_pk, &self.st.1);
+        let payload = seal(data, &nonce, &self.client_pk, &self.st.1);
         (nonce, payload)
     }
 

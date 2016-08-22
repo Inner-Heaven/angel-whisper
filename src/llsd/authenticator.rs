@@ -30,7 +30,7 @@ impl DumbAuthenticator {
 
 impl Authenticator for DumbAuthenticator {
     fn is_valid(&self, key: &PublicKey) -> bool {
-        self.white_list.contains(&key)
+        self.white_list.contains(key)
     }
 }
 

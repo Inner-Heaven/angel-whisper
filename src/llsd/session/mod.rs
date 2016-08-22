@@ -7,7 +7,8 @@ pub mod client;
 pub mod server;
 pub type KeyPair = (PublicKey, SecretKey);
 
-/// Array of null bytes used in Hello package. It's big to prevent amplifiction attacks.
+/// Array of null bytes used in Hello package. Needs to be bigger than Welcome frame to prevent
+/// amplification attacks.
 pub static NULL_BYTES: [u8; 256] = [b'\x00'; 256];
 
 /// Session has three states. Each state means different thing on client and server. For example,
@@ -20,7 +21,8 @@ pub enum SessionState {
     Fresh,
     /// This state means that session is established and messages can be sent both ways.
     Ready,
-    /// This state means that session established, but can't be used at the time
+    /// This state means that session established, but can't be used at the time. Session with this
+    /// state would be killed by reaper on next run.
     Error
 }
 

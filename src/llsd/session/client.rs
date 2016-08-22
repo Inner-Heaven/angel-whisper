@@ -20,6 +20,9 @@ pub struct Session {
 }
 
 impl Session {
+
+    /// Create new client session. Requires client long-term key-pair and server long-term public
+    /// key.
     pub fn new(server_lt_pk: PublicKey, our_pair: KeyPair) -> Session {
         Session {
             created_at:     UTC::now(),
@@ -35,7 +38,7 @@ impl Session {
         let nonce = gen_nonce();
         let payload = seal(&NULL_BYTES, &nonce, &self.server_lt_pk, &self.st.1);
         Frame {
-            id: self.st.0.clone(),
+            id: self.st.0,
             nonce: nonce,
             kind: FrameKind::Hello,
             payload: payload
@@ -57,7 +60,7 @@ impl Session {
                 let nonce = gen_nonce();
                 let payload = seal(&initiate_box, &nonce, &self.server_pk.expect("Shit is on fire yo"), &self.st.1);
                 let frame = Frame {
-                    id: welcome.id.clone(),
+                    id: welcome.id,
                     nonce: nonce,
                     kind: FrameKind::Initiate,
                     payload: payload
@@ -77,7 +80,7 @@ impl Session {
         if self.state != SessionState::Fresh || ready.kind != FrameKind::Ready {
             fail!(LlsdErrorKind::InvalidState)
         }
-        if let Some(msg) = self.read_msg(&ready) {
+        if let Some(msg) = self.read_msg(ready) {
             if &msg == &READY_PAYLOAD {
                 self.state = SessionState::Ready;
                 return Ok(());
@@ -91,7 +94,7 @@ impl Session {
         let nonce = gen_nonce();
         let our_sk = &self.our_pair.1;
         let pk = &self.st.1;
-        let vouch_box = seal(&pk.0, &nonce, &self.server_pk.expect("Shit is on fire yo"), &our_sk);
+        let vouch_box = seal(&pk.0, &nonce, &self.server_pk.expect("Shit is on fire yo"), our_sk);
 
         let mut vouch = Vec::with_capacity(72);
         vouch.extend_from_slice(&nonce.0);
@@ -112,7 +115,7 @@ impl Sendable for Session {
 
     fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>) {
         let nonce = gen_nonce();
-        let payload = seal(&data, &nonce, &self.server_pk.unwrap(), &self.st.1);
+        let payload = seal(data, &nonce, &self.server_pk.unwrap(), &self.st.1);
         (nonce, payload)
     }
 

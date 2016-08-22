@@ -1,5 +1,6 @@
 use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
+use std::default::Default;
 
 use sodiumoxide::crypto::box_::PublicKey;
 
@@ -22,19 +23,11 @@ impl Clone for HashMapStore {
     }
 }
 
-impl HashMapStore {
-    pub fn new() -> HashMapStore {
-        HashMapStore {
-            store: Arc::new(RwLock::new(HashMap::new()))
-        }
-    }
-}
-
-    impl SessionStore for HashMapStore {
-        fn insert(&self, session: Session) -> Option<()> {
+impl SessionStore for HashMapStore {
+    fn insert(&self, session: Session) -> Option<()> {
         // Avoid write locks on map as hard as we can
-        if session.is_valid() && !self.store.read().ok().expect(POISONED_LOCK_MSG).contains_key(&session.id()) {
-            self.store.write().ok().expect(POISONED_LOCK_MSG).insert(session.id().clone(), Arc::new(RwLock::new(session)));
+        if session.is_valid() && !self.store.read().expect(POISONED_LOCK_MSG).contains_key(&session.id()) {
+            self.store.write().expect(POISONED_LOCK_MSG).insert(session.id(), Arc::new(RwLock::new(session)));
             Some(())
         } else {
             None
@@ -42,7 +35,7 @@ impl HashMapStore {
     }
 
     fn find_by_pk(&self, key: &PublicKey) -> Option<Arc<RwLock<Session>>> {
-        if let Some(lock) = self.store.read().ok().expect(POISONED_LOCK_MSG).get(key) {
+        if let Some(lock) = self.store.read().expect(POISONED_LOCK_MSG).get(key) {
             Some(lock.clone())
         } else {
             None
@@ -50,7 +43,15 @@ impl HashMapStore {
     }
 
     fn destroy(&self, key: &PublicKey) {
-        self.store.write().ok().expect(POISONED_LOCK_MSG).remove(key);
+        self.store.write().expect(POISONED_LOCK_MSG).remove(key);
+    }
+}
+
+impl Default for HashMapStore {
+    fn default() -> HashMapStore {
+        HashMapStore {
+            store: Arc::new(RwLock::new(HashMap::new()))
+        }
     }
 }
 

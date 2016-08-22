@@ -1,20 +1,29 @@
-use std::convert::From;
-
 use sodiumoxide::crypto::box_::{Nonce, PublicKey};
 use byteorder::{WriteBytesExt};
 use nom::{rest, IResult};
 
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 
+/// Header size in bytes. Used to pre-allocate vector of correct size.
 pub const HEADER_SIZE: usize = 57;
 
+
+/// Frame type.
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum FrameKind {
+    /// Initial frame. Sent from client.
     Hello = 1,
+    /// Reply to initial frame. Sent from server.
     Welcome,
+    /// Authentication frame. Sent from client.
     Initiate,
+    /// After successful handshake this frame is sent from server.
     Ready,
-    Message
+    /// Generic message frame. Can be sent from either side.
+    Message,
+    /// Termination frame. Usually used to indicate handshake error or session termination. Can be
+    /// sent from either side.
+    Termination
 }
 
 impl FrameKind {
@@ -25,6 +34,7 @@ impl FrameKind {
             3 => Some(FrameKind::Initiate),
             4 => Some(FrameKind::Ready),
             5 => Some(FrameKind::Message),
+            6 => Some(FrameKind::Termination),
             _ => None
         }
     }
@@ -50,13 +60,14 @@ pub struct Frame {
 }
 
 impl Frame {
+    /// Pack frame header and its payload into Vec<u8>.
     pub fn pack(&self) -> Vec<u8> {
         let frame_size = HEADER_SIZE + self.payload.len();
         let mut frame = Vec::with_capacity(frame_size);
 
         let mut kind = Vec::with_capacity(1);
         // Unwrap here makes sense, amirite?
-        kind.write_u8(self.kind.clone() as u8).unwrap();
+        kind.write_u8(self.kind as u8).unwrap();
         frame.extend_from_slice(&self.id.0);
         frame.extend_from_slice(&self.nonce.0);
         frame.extend(kind);
@@ -64,6 +75,7 @@ impl Frame {
         frame
     }
 
+    /// Parse packed frame.
     pub fn from_slice(i: &[u8]) -> LlsdResult<Frame> {
         match parse_frame(i) {
             IResult::Done(_, frame) => Ok(frame),

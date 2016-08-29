@@ -1,46 +1,58 @@
 use sodiumoxide::crypto::box_::{SecretKey, PublicKey};
+use typemap::TypeMap;
+use std::sync::{Arc, RwLock};
 
 use llsd::frames::{Frame, FrameKind};
 use llsd::session::server::Session;
 use llsd::sessionstore::SessionStore;
 use llsd::authenticator::Authenticator;
 use errors::{AWResult, AWErrorKind};
+use system::{Handler, ServiceHub};
 
-type Response = Vec<u8>;
+pub type Response = Vec<u8>;
 
-pub struct AngelSystem<S: SessionStore, A: Authenticator>   {
+
+pub struct AngelSystem<S: SessionStore, A: Authenticator, H: Handler>   {
     sessions: S,
     authenticator: A,
     public_key: PublicKey,
-    secret_key: SecretKey
+    secret_key: SecretKey,
+
+    services: ServiceHub,
+    handler: Arc<H>
 }
 
-impl <S: SessionStore, A: Authenticator> Clone for AngelSystem<S,A>{
-    fn clone(&self) -> AngelSystem<S,A> {
+impl <S: SessionStore, A: Authenticator, H: Handler> Clone for AngelSystem<S,A,H>{
+    fn clone(&self) -> AngelSystem<S,A,H> {
         AngelSystem {
             sessions: self.sessions.clone(),
             authenticator: self.authenticator.clone(),
             public_key: self.public_key,
-            secret_key: self.secret_key.clone()
+            secret_key: self.secret_key.clone(),
+            services: self.services.clone(),
+            handler: self.handler.clone()
         }
     }
 }
 
-impl <S: SessionStore, A: Authenticator> AngelSystem<S,A>{
-
-    pub fn new(store: S, authenticator: A, pk: PublicKey, sk: SecretKey) -> AngelSystem<S,A> {
+impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
+    pub fn new(store: S, authenticator: A, pk: PublicKey, sk: SecretKey, handler: H) -> AngelSystem<S,A,H> {
         AngelSystem {
             sessions: store,
             authenticator: authenticator,
             public_key: pk,
-            secret_key: sk
+            secret_key: sk,
+            services: Arc::new(RwLock::new(TypeMap::new())),
+            handler: Arc::new(handler)
         }
     }
 
     pub fn process(&self, req: Frame) -> AWResult<Frame> {
         match req.kind {
-            FrameKind::Hello => self.process_hello(&req),
-            _                => unimplemented!()
+            FrameKind::Hello    => self.process_hello(&req),
+            FrameKind::Initiate => self.process_initiate(&req),
+            FrameKind::Message  => self.process_message(&req),
+            _                   => unimplemented!()
         }
     }
 
@@ -68,5 +80,35 @@ impl <S: SessionStore, A: Authenticator> AngelSystem<S,A>{
             fail!(AWErrorKind::HandshakeFailed(None))
         }
         fail!(AWErrorKind::ServerFault);
+    }
+
+    // TODO: Rewrite this madness
+    fn process_initiate(&self, frame: &Frame) -> AWResult<Frame> {
+        match self.sessions.find_by_pk(&frame.id) {
+            None => fail!(AWErrorKind::IncorrectState),
+            Some(session_lock) => {
+                let session_guard = session_lock.write();
+                if let Ok(mut session) = session_guard {
+                    match session.validate_initiate(frame) {
+                        None => fail!(AWErrorKind::HandshakeFailed(None)),
+                        Some(key) => {
+                            if !self.authenticator.is_valid(&key) {
+                                fail!(AWErrorKind::HandshakeFailed(None));
+                            }
+                            match session.make_ready(frame, &key) {
+                                Ok(res) => Ok(res),
+                                Err(err) => fail!(AWErrorKind::HandshakeFailed(Some(err)))
+                            }
+                        }
+                    }
+                } else { // Failed to aquire write lock for a session.
+                    fail!(AWErrorKind::ServerFault);
+                }
+            }
+        }
+    }
+
+    fn process_message(&self, frame: &Frame) -> AWResult<Frame> {
+        unimplemented!();
     }
 }

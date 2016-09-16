@@ -41,8 +41,20 @@ fn handshake_and_ping_pong() {
     let initiate_result = system.process(initiate);
 
     assert!(initiate_result.is_ok());
-    assert_eq!(initiate_result.unwrap().kind, FrameKind::Ready);
+    let ready = initiate_result.unwrap();
+    assert_eq!(&ready.kind, &FrameKind::Ready);
+
+    let ready_status = session.read_ready(&ready);
+    assert!(ready_status.is_ok());
+
 
     let ping_frame = session.make_message(&b"ping".to_vec()).expect("Failed to create Message Frame");
     let pong_result = system.process(ping_frame);
+    println!("{:#?}", pong_result);
+    assert!(pong_result.is_ok());
+
+    let message_frame = pong_result.unwrap();
+    let pong_payload = session.read_msg(&message_frame).unwrap();
+    assert_eq!(pong_payload, b"pong".to_vec());
+
 }

@@ -4,6 +4,7 @@ use std::sync::{Arc, RwLock};
 
 use llsd::frames::{Frame, FrameKind};
 use llsd::session::server::Session;
+use llsd::session::Sendable;
 use llsd::sessionstore::SessionStore;
 use llsd::authenticator::Authenticator;
 use errors::{AWResult, AWErrorKind};
@@ -109,6 +110,35 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
     }
 
     fn process_message(&self, frame: &Frame) -> AWResult<Frame> {
-        unimplemented!();
+        match self.sessions.find_by_pk(&frame.id) {
+            None => fail!(AWErrorKind::IncorrectState),
+            Some(session_lock) => {
+                let req = {
+                    let session_guard = session_lock.write();
+                    if let Ok(session) = session_guard {
+                        if let Some(req) = session.read_msg(frame) {
+                            req.to_vec()
+                        } else {
+                            fail!(AWErrorKind::CannotDecrypt);
+                        }
+
+                    } else {
+                        fail!(AWErrorKind::ServerFault);
+                    }
+                };
+                // this is going to take Arc<RWLock<Session>> as argument.
+                let res = try!(self.handler.handle(self.services.clone(), req.to_vec()));
+
+                if let Ok(session) = session_lock.read() {
+                    if let Ok(frame) = session.make_message(&res) {
+                        Ok(frame)
+                    } else {
+                        fail!(AWErrorKind::BadFrame)
+                    }
+                } else {
+                    fail!(AWErrorKind::ServerFault)
+                }
+            }
+        }
     }
 }

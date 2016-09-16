@@ -8,9 +8,9 @@ pub mod router;
 
 pub type ServiceHub = Arc<RwLock<TypeMap>>;
 
-/// Generic handler trait.
 pub trait Handler: Send + Sync + 'static {
     /// Handle incoming message.
+    #[inline]
     fn handle(&self, services: ServiceHub, msg: Vec<u8>) -> AWResult<Vec<u8>>;
 }
 

@@ -23,8 +23,8 @@ fn ping_pong(_: ServiceHub, msg: Vec<u8>) -> AWResult<Vec<u8>> {
     }
 }
 
-#[test]
-fn handshake_and_ping_pong() {
+#[bench]
+fn ping_pong_bench(b: &mut Bencher) {
     let (our_pk, our_sk) = gen_keypair();
 
     let (server_pk, server_sk) = gen_keypair();
@@ -36,30 +36,12 @@ fn handshake_and_ping_pong() {
 
 
     let mut session = ClientSession::new(server_pk.clone(), (our_pk, our_sk));
-    let hello_result = system.process(session.make_hello());
-    assert!(hello_result.is_ok());
-    let welcome_frame = hello_result.unwrap();
-    assert_eq!(welcome_frame.kind, FrameKind::Welcome);
-
-    let initiate = session.make_initiate(&welcome_frame).unwrap();
-
-    let initiate_result = system.process(initiate);
-
-    assert!(initiate_result.is_ok());
-    let ready = initiate_result.unwrap();
-    assert_eq!(&ready.kind, &FrameKind::Ready);
-
-    let ready_status = session.read_ready(&ready);
-    assert!(ready_status.is_ok());
-
-
-    let ping_frame = session.make_message(&b"ping".to_vec()).expect("Failed to create Message Frame");
-    let pong_result = system.process(ping_frame);
-    println!("{:#?}", pong_result);
-    assert!(pong_result.is_ok());
-
-    let message_frame = pong_result.unwrap();
-    let pong_payload = session.read_msg(&message_frame).unwrap();
-    assert_eq!(pong_payload, b"pong".to_vec());
-
+    let welcome_frame  = system.process(session.make_hello()).unwrap();
+    let initiate_frame = session.make_initiate(&welcome_frame).unwrap();
+    let ready_frame = system.process(initiate_frame).unwrap();
+    session.read_ready(&ready_frame);
+    b.iter(|| {
+        let ping_frame = test::black_box(session.make_message(&b"ping".to_vec()).expect("Failed to create Message Frame"));
+        system.process(ping_frame);
+    })
 }

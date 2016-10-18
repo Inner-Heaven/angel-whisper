@@ -5,6 +5,7 @@ extern crate chrono;
 extern crate byteorder;
 extern crate typemap;
 extern crate murmurhash64;
+extern crate protobuf;
 #[macro_use] extern crate nom;
 #[macro_use] extern crate slog;
 

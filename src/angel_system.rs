@@ -115,7 +115,7 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
             Some(session_lock) => session_lock,
         };
         let req = {
-            let session = match session_lock.write() {
+            let session = match session_lock.read() {
                 Err(_) => fail!(AWErrorKind::ServerFault),
                 Ok(session) => session,
             };

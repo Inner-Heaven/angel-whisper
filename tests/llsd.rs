@@ -2,20 +2,17 @@
 extern crate angel_whisper;
 #[macro_use] extern crate blunder;
 
+use std::sync::{Arc, RwLock};
+
 use angel_whisper::crypto::gen_keypair;
 use angel_whisper::llsd::hashmapstore::HashMapStore;
 use angel_whisper::llsd::authenticator::DumbAuthenticator;
-use angel_whisper::{AngelSystem, ClientSession, Sendable};
+use angel_whisper::{AngelSystem, ClientSession, ServerSession, Sendable};
 use angel_whisper::frames::FrameKind;
 use angel_whisper::errors::{AWResult, AWErrorKind};
 use angel_whisper::system::ServiceHub;
 
-
-
-extern crate test;
-use test::Bencher;
-
-fn ping_pong(_: ServiceHub, msg: Vec<u8>) -> AWResult<Vec<u8>> {
+fn ping_pong(_: ServiceHub, _: Arc<RwLock<ServerSession>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
     if msg == b"ping".to_vec() {
         Ok(b"pong".to_vec())
     } else {

@@ -136,3 +136,10 @@ impl Sendable for Session {
         }
     }
 }
+
+impl ::std::default::Default for Session {
+    fn default() -> Session {
+        let (key, _) = gen_keypair();
+        Session::new(key)
+    }
+}

@@ -125,7 +125,7 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
             }
         };
         // this is going to take Arc<RWLock<Session>> as argument.
-        let res = try!(self.handler.handle(self.services.clone(), req.to_vec()));
+        let res = try!(self.handler.handle(self.services.clone(), session_lock.clone(), req.to_vec()));
         let session = match session_lock.read() {
             Err(_) => fail!(AWErrorKind::ServerFault),
             Ok(session) => session,

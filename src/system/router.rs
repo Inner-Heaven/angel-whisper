@@ -8,6 +8,7 @@ use byteorder::{BigEndian, ByteOrder};
 
 use super::{Handler, ServiceHub};
 use ::errors::{AWResult,AWErrorKind};
+use ::llsd::session::server::Session;
 
 const SEED: u64 = 69;
 const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
@@ -51,20 +52,21 @@ impl Default for Router {
 }
 
 impl Handler for Router {
-    fn handle(&self, services: ServiceHub, msg: Vec<u8>) -> AWResult<Vec<u8>> {
+    fn handle(&self, services: ServiceHub, session: Arc<RwLock<Session>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
          if msg.len() < 8 {
             fail!(AWErrorKind::BadFrame);
         }
         let route = BigEndian::read_u64(&msg);
         match self.store.read().expect(POISONED_LOCK_MSG).get(&route.into()) {
             None    => fail!(AWErrorKind::BadFrame),
-            Some(handler)   => handler.handle(services, msg)
+            Some(handler)   => handler.handle(services, session, msg)
         }
     }
 }
 #[cfg(test)]
 mod test {
     use super::*;
+    use ::llsd::session::server::Session;
     use system::{Handler, ServiceHub};
     use errors::AWResult;
 
@@ -81,14 +83,18 @@ mod test {
     fn get_hub() -> ServiceHub {
         Arc::new(RwLock::new(TypeMap::new()))
     }
-    fn echo(_: ServiceHub, msg: Vec<u8>) -> AWResult<Vec<u8>> {
+    fn echo(_: ServiceHub, _: Arc<RwLock<Session>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
         Ok(msg)
+    }
+
+    fn get_session() -> Arc<RwLock<Session>> {
+        Arc::new(RwLock::new(Session::default()))
     }
 
 
     struct GtfoHandler;
     impl Handler for GtfoHandler {
-        fn handle(&self, _: ServiceHub, _: Vec<u8>) -> AWResult<Vec<u8>> {
+        fn handle(&self, _: ServiceHub, _: Arc<RwLock<Session>>, _: Vec<u8>) -> AWResult<Vec<u8>> {
             Ok(b"gtfo".to_vec())
         }
     }
@@ -101,7 +107,7 @@ mod test {
         req.write_u64::<BigEndian>(get_route().0).unwrap();
         req.append(&mut b"hello".to_vec());
 
-        let res = router.handle(get_hub(), req.clone());
+        let res = router.handle(get_hub(), get_session(), req.clone());
         assert!(res.is_ok());
         let res_vec = res.unwrap();
 
@@ -116,7 +122,7 @@ mod test {
         req.write_u64::<BigEndian>(get_route().0).unwrap();
         req.append(&mut b"hello".to_vec());
 
-        let res = router.handle(get_hub(), req.clone());
+        let res = router.handle(get_hub(), get_session(), req.clone());
         assert!(res.is_ok());
         let res_vec = res.unwrap();
 
@@ -130,7 +136,7 @@ mod test {
         req.write_u64::<BigEndian>(get_route().0).unwrap();
         req.append(&mut b"hello".to_vec());
 
-        let res = router.handle(get_hub(), req.clone());
+        let res = router.handle(get_hub(), get_session(), req.clone());
         assert!(res.is_err());
     }
 
@@ -139,7 +145,7 @@ mod test {
         let router = Router::default();
         let req = vec![1,2];
 
-        let res = router.handle(get_hub(), req.clone());
+        let res = router.handle(get_hub(), get_session(), req.clone());
         assert!(res.is_err());
     }
 }

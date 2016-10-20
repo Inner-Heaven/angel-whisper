@@ -5,8 +5,8 @@ use std::default::Default;
 use sodiumoxide::crypto::box_::PublicKey;
 
 use super::sessionstore::SessionStore;
-use super::session::server::Session;
-use super::session::Sendable;
+use ::llsd::session::server::Session;
+use ::llsd::session::Sendable;
 
 const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
 
@@ -63,8 +63,8 @@ impl Default for HashMapStore {
 mod test {
     use super::*;
     use super::super::sessionstore::SessionStore;
-    use super::super::session::server::Session;
-    use super::super::session::Sendable;
+    use ::llsd::session::server::Session;
+    use ::llsd::session::Sendable;
     use sodiumoxide::crypto::box_;
 
     fn make_store() -> HashMapStore {

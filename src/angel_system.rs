@@ -5,13 +5,10 @@ use std::sync::{Arc, RwLock};
 use llsd::frames::{Frame, FrameKind};
 use llsd::session::server::Session;
 use llsd::session::Sendable;
-use llsd::sessionstore::SessionStore;
-use llsd::authenticator::Authenticator;
 use errors::{AWResult, AWErrorKind};
 use system::{Handler, ServiceHub};
-
-pub type Response = Vec<u8>;
-
+use system::authenticator::Authenticator;
+use system::sessionstore::SessionStore;
 
 pub struct AngelSystem<S: SessionStore, A: Authenticator, H: Handler>   {
     sessions: S,
@@ -145,8 +142,8 @@ pub mod tokio {
     use futures::{self, Future, Async};
 
     use ::llsd::frames::{Frame};
-    use ::llsd::sessionstore::SessionStore;
-    use ::llsd::authenticator::Authenticator;
+    use ::system::sessionstore::SessionStore;
+    use ::system::authenticator::Authenticator;
     use ::system::{Handler, ServiceHub};
     use super::AngelSystem;
 

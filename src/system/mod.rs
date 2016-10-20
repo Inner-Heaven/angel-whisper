@@ -6,6 +6,9 @@ use super::errors::AWResult;
 use super::llsd::session::server::Session;
 
 pub mod router;
+pub mod authenticator;
+pub mod hashmapstore;
+pub mod sessionstore;
 
 pub type ServiceHub = Arc<RwLock<TypeMap>>;
 

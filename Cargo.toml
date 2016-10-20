@@ -4,7 +4,9 @@ name = "angel_whisper"
 version = "0.1.0"
 
 [features]
-default = ["protobuf"]
+default = ["protobuf", "system-on-tokio"]
+#system-on-tokio = ["tokio-core", "tokio-proto", "tokio-service"]
+system-on-tokio = ["tokio-service", "futures"]
 
 [dependencies]
 serde = "0.7"
@@ -20,3 +22,10 @@ murmurhash64 = "0.3.1"
 
 # optional
 protobuf = { version = "1.0", optional = true }
+#tokio-core = { version = "0.1.0", optional = true }
+#tokio-proto = { git = "https://github.com/tokio-rs/tokio-proto", optional = true }
+tokio-service = { git = "https://github.com/tokio-rs/tokio-service", optional = true }
+futures = { version = "0.1", optional = true }
+
+[replace]
+"mio:0.6.0" = { path = '../mio' }

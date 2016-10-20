@@ -1,4 +1,3 @@
-#![feature(test)]
 extern crate angel_whisper;
 #[macro_use] extern crate blunder;
 

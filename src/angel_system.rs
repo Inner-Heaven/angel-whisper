@@ -133,3 +133,34 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
         session.make_message(&res).map_err(|_| AWErrorKind::BadFrame.into())
     }
 }
+
+
+/*
+ * System On Tokio
+ */
+
+#[cfg(feature = "system-on-tokio")]
+pub mod tokio {
+    use tokio_service::Service;
+    use futures::{self, Future, Async};
+
+    use ::llsd::frames::{Frame};
+    use ::llsd::sessionstore::SessionStore;
+    use ::llsd::authenticator::Authenticator;
+    use ::system::{Handler, ServiceHub};
+    use super::AngelSystem;
+
+    impl <S: SessionStore, A: Authenticator, H: Handler> Service for AngelSystem<S,A,H> {
+        type Request = Frame;
+        type Response = Frame;
+        type Error = ::errors::AWErrorKind;
+        type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
+
+        fn call(&self, request: Self::Request) -> Self::Future {
+            unimplemented!()
+        }
+        fn poll_ready(&self) -> Async<()> {
+            Async::Ready(())
+        }
+    }
+}

@@ -9,6 +9,8 @@ extern crate protobuf;
 #[macro_use] extern crate nom;
 #[macro_use] extern crate slog;
 
+#[cfg(feature = "system-on-tokio")] extern crate futures;
+#[cfg(feature = "system-on-tokio")] extern crate tokio_service;
 #[allow(dead_code)]
 pub mod llsd;
 pub use llsd::session::client::Session as ClientSession;

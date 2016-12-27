@@ -11,3 +11,5 @@ addons:
   apt:
     packages:
       - libsodium-dev
+     sources:
+       - sourceline: ppa:chris-lea/libsodium

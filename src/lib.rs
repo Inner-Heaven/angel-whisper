@@ -13,8 +13,6 @@ extern crate protobuf;
 #[cfg(feature = "system-on-tokio")] extern crate futures;
 #[cfg(feature = "system-on-tokio")] extern crate tokio_service;
 
-// TODO: Move this to create level instead
-#![deny(missing_docs)]
 pub mod llsd;
 pub use llsd::session::client::Session as ClientSession;
 pub use llsd::session::server::Session as ServerSession;

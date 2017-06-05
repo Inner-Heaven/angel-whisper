@@ -86,12 +86,12 @@ impl Frame {
 
 
 named!(parse_frame < &[u8], Frame >,
-       chain!(
-           pk:          map_opt!(take!(32), PublicKey::from_slice)  ~
-           nonce:       map_opt!(take!(24), Nonce::from_slice)      ~
-           kind:        map_opt!(take!(1),  FrameKind::from_slice)  ~
-           payload:     rest,
-           || {
+       do_parse!(
+           pk:          map_opt!(take!(32), PublicKey::from_slice)  >>
+           nonce:       map_opt!(take!(24), Nonce::from_slice)      >>
+           kind:        map_opt!(take!(1),  FrameKind::from_slice)  >>
+           payload:     rest                                        >>
+           ({
                let mut vec = Vec::with_capacity(payload.len());
                vec.extend(payload.iter().cloned());
                Frame {
@@ -100,7 +100,7 @@ named!(parse_frame < &[u8], Frame >,
                    kind: kind,
                    payload: vec
                }
-           }
+           })
            )
       );
 

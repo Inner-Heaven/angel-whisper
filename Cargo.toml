@@ -11,12 +11,12 @@ default = ["protobuf"]
 [dependencies]
 serde = "0.7"
 blunder = "0.1"
-byteorder = "0.5"
+byteorder = "1.0.0"
 chrono = "0.2"
 nom = "1.2"
-slog = "1.0.0-alpha"
-sodiumoxide = "0.0.12"
-uuid = "0.3"
+slog = "2.0.6"
+sodiumoxide = "0.0.15"
+uuid = "0.5"
 typemap = "0.3.3"
 murmurhash64 = "0.3.1"
 

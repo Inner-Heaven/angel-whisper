@@ -5,8 +5,8 @@ extern crate angel_whisper;
 use std::sync::{Arc, RwLock};
 
 use angel_whisper::crypto::gen_keypair;
-use angel_whisper::llsd::hashmapstore::HashMapStore;
-use angel_whisper::llsd::authenticator::DumbAuthenticator;
+use angel_whisper::system::authenticator::DumbAuthenticator;
+use angel_whisper::system::hashmapstore::HashMapStore;
 use angel_whisper::{AngelSystem, ClientSession, ServerSession, Sendable};
 use angel_whisper::frames::FrameKind;
 use angel_whisper::errors::{AWResult, AWErrorKind};

@@ -135,7 +135,7 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
 /*
  * System On Tokio
  */
-
+/*
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
     use tokio_service::Service;
@@ -160,4 +160,4 @@ pub mod tokio {
             Async::Ready(())
         }
     }
-}
+}*/

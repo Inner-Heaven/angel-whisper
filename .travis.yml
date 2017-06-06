@@ -13,6 +13,7 @@ cache:
 matrix:
   allow_failures:
     - rust: nightly
+    - os: osx
 
 addons:
   apt:

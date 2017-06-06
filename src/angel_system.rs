@@ -135,29 +135,32 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
 /*
  * System On Tokio
  */
-/*
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
-    use tokio_service::Service;
-    use futures::{self, Future, Async};
+    use frames::Frame;
+    use tokio_io::codec::{Encoder, Decoder};
+    use bytes::BytesMut;
+    use std::io;
 
-    use ::llsd::frames::{Frame};
-    use ::system::sessionstore::SessionStore;
-    use ::system::authenticator::Authenticator;
-    use ::system::{Handler, ServiceHub};
-    use super::AngelSystem;
+    pub struct FrameCodec;
 
-    impl <S: SessionStore, A: Authenticator, H: Handler> Service for AngelSystem<S,A,H> {
-        type Request = Frame;
-        type Response = Frame;
-        type Error = ::errors::AWErrorKind;
-        type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
-
-        fn call(&self, request: Self::Request) -> Self::Future {
-            unimplemented!()
-        }
-        fn poll_ready(&self) -> Async<()> {
-            Async::Ready(())
+    impl Decoder for FrameCodec {
+        type Item = Frame;
+        type Error = io::Error;
+        fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Frame>> {
+            match Frame::from_slice(&buf) {
+                Ok(frame)   => Ok(Some(frame)),
+                Err(_)      => Err(io::Error::new(io::ErrorKind::Other, "frame too small to decode"))
+            }
         }
     }
-}*/
+
+    impl Encoder for FrameCodec {
+        type Item = Frame;
+        type Error = io::Error;
+            fn encode(&mut self, msg: Frame, buf: &mut BytesMut) -> io::Result<()> {
+                msg.pack_to_buf(buf);
+                Ok(())
+            }
+    }
+}

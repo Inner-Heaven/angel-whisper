@@ -1,6 +1,7 @@
 use sodiumoxide::crypto::box_::{Nonce, PublicKey};
 use byteorder::{WriteBytesExt};
 use nom::{rest, IResult};
+use bytes::{Bytes, BytesMut};
 
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 
@@ -60,19 +61,26 @@ pub struct Frame {
 }
 
 impl Frame {
-    /// Pack frame header and its payload into Vec<u8>.
-    pub fn pack(&self) -> Vec<u8> {
-        let frame_size = HEADER_SIZE + self.payload.len();
-        let mut frame = Vec::with_capacity(frame_size);
+    fn frame_size(&self) -> usize {
+        HEADER_SIZE + self.payload.len()
+    }
 
+    pub fn pack_to_buf(&self, buf: &mut BytesMut) {
+        buf.reserve(self.frame_size());
         let mut kind = Vec::with_capacity(1);
         // Unwrap here makes sense, amirite?
         kind.write_u8(self.kind as u8).unwrap();
-        frame.extend_from_slice(&self.id.0);
-        frame.extend_from_slice(&self.nonce.0);
-        frame.extend(kind);
-        frame.extend(self.payload.clone());
-        frame
+        buf.extend_from_slice(&self.id.0);
+        buf.extend_from_slice(&self.nonce.0);
+        buf.extend_from_slice(&kind);
+        buf.extend_from_slice(&self.payload);
+        ()
+    }
+    /// Pack frame header and its payload into Vec<u8>.
+    pub fn pack(&self) -> Bytes {
+        let mut frame = BytesMut::with_capacity(self.frame_size());
+        self.pack_to_buf(&mut frame);
+        frame.freeze()
     }
 
     /// Parse packed frame.

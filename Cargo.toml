@@ -3,22 +3,39 @@ authors = ["Andrey Cherkashin"]
 name = "angel_whisper"
 version = "0.1.0"
 
-[features]
-default = ["protobuf"]
-#system-on-tokio = ["tokio-core", "tokio-proto", "tokio-service"]
-#system-on-tokio = ["tokio-service", "futures"]
-
 [dependencies]
-serde = "0.7"
 blunder = "0.1"
 byteorder = "1.0.0"
 chrono = "0.2"
+murmurhash64 = "0.3.1"
 nom = "3.0"
+serde = "0.7"
 slog = "2.0.6"
 sodiumoxide = "0.0.15"
-uuid = "0.5"
 typemap = "0.3.3"
-murmurhash64 = "0.3.1"
+uuid = "0.5"
+bytes = "0.4"
 
-# optional
-protobuf = { version = "1.0", optional = true }
+[dependencies.futures]
+optional = true
+version = "0.1.14"
+
+[dependencies.protobuf]
+optional = true
+version = "1.0"
+
+[dependencies.tokio-io]
+optional = true
+version = "0.1.2"
+
+[dependencies.tokio-proto]
+optional = true
+version = "0.1.1"
+
+[dependencies.tokio-service]
+optional = true
+version = "0.1.0"
+
+[features]
+default = ["system-on-tokio"]
+system-on-tokio = ["protobuf", "tokio-proto", "tokio-service", "tokio-io", "futures"]

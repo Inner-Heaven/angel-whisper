@@ -4,6 +4,7 @@ extern crate sodiumoxide;
 extern crate uuid;
 extern crate chrono;
 extern crate byteorder;
+extern crate bytes;
 extern crate typemap;
 extern crate murmurhash64;
 extern crate protobuf;
@@ -11,7 +12,7 @@ extern crate protobuf;
 #[macro_use] extern crate slog;
 
 #[cfg(feature = "system-on-tokio")] extern crate futures;
-#[cfg(feature = "system-on-tokio")] extern crate tokio_service;
+#[cfg(feature = "system-on-tokio")] extern crate tokio_io;
 
 pub mod llsd;
 pub use llsd::session::client::Session as ClientSession;

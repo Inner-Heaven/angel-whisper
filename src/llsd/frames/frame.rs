@@ -61,12 +61,15 @@ pub struct Frame {
 }
 
 impl Frame {
-    fn frame_size(&self) -> usize {
+
+    /// Calculates length of a frame;
+    pub fn length(&self) -> usize {
         HEADER_SIZE + self.payload.len()
     }
 
+    /// Writes packed bytes to supplied buffer. This doesn't include legnth of the message.
     pub fn pack_to_buf(&self, buf: &mut BytesMut) {
-        buf.reserve(self.frame_size());
+        buf.reserve(self.length());
         let mut kind = Vec::with_capacity(1);
         // Unwrap here makes sense, amirite?
         kind.write_u8(self.kind as u8).unwrap();
@@ -78,7 +81,7 @@ impl Frame {
     }
     /// Pack frame header and its payload into Vec<u8>.
     pub fn pack(&self) -> Bytes {
-        let mut frame = BytesMut::with_capacity(self.frame_size());
+        let mut frame = BytesMut::with_capacity(self.length());
         self.pack_to_buf(&mut frame);
         frame.freeze()
     }

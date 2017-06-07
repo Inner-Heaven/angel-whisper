@@ -13,6 +13,7 @@ extern crate protobuf;
 
 #[cfg(feature = "system-on-tokio")] extern crate futures;
 #[cfg(feature = "system-on-tokio")] extern crate tokio_io;
+#[cfg(feature = "system-on-tokio")] extern crate tokio_proto;
 
 pub mod llsd;
 pub use llsd::session::client::Session as ClientSession;

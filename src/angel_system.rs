@@ -137,20 +137,24 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
  */
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
+    use blunder::Blunder;
+    use llsd::errors::{LlsdError, LlsdResult, LlsdErrorKind};
     use frames::Frame;
     use tokio_io::codec::{Encoder, Decoder};
     use bytes::BytesMut;
     use std::io;
+    use std::result::Result;
 
     pub struct FrameCodec;
 
+    type DecoderResult = Result<Option<Frame>, LlsdErrorKind>;
     impl Decoder for FrameCodec {
         type Item = Frame;
-        type Error = io::Error;
-        fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Frame>> {
+        type Error = LlsdErrorKind;
+        fn decode(&mut self, buf: &mut BytesMut) -> DecoderResult {
             match Frame::from_slice(&buf) {
                 Ok(frame)   => Ok(Some(frame)),
-                Err(_)      => Err(io::Error::new(io::ErrorKind::Other, "frame too small to decode"))
+                Err(e)      => Err(e.clone())
             }
         }
     }

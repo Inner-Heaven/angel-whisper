@@ -4,7 +4,7 @@ name = "angel_whisper"
 version = "0.1.0"
 
 [dependencies]
-blunder = "0.1"
+blunder = "0.1.7"
 byteorder = "1.0.0"
 chrono = "0.2"
 murmurhash64 = "0.3.1"

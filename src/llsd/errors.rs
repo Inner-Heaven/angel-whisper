@@ -1,6 +1,8 @@
 use std::result::Result;
 use std::error::Error;
 use std::fmt;
+use std::io;
+use std::convert::{Into, From};
 
 use blunder::Blunder;
 
@@ -9,7 +11,7 @@ pub type LlsdError = Blunder<LlsdErrorKind>;
 pub type LlsdResult<T> = Result<T,LlsdError>;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LlsdErrorKind {
     HandshakeFailed,
     MessageTooBig,
@@ -34,5 +36,20 @@ impl Error for LlsdErrorKind {
 impl fmt::Display for LlsdErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,"{}", self.description())
+    }
+}
+
+impl Into<io::Error> for LlsdErrorKind {
+    fn into(self) -> io::Error {
+        match self {
+            LlsdErrorKind::BadFrame => io::Error::new(io::ErrorKind::InvalidData, self),
+            _                       => io::Error::new(io::ErrorKind::Other, self)
+        }
+    }
+}
+
+impl From<io::Error> for LlsdErrorKind {
+    fn from(error: io::Error) -> LlsdErrorKind {
+        LlsdErrorKind::BadFrame
     }
 }

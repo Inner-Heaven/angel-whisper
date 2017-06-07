@@ -24,8 +24,9 @@ pub use llsd::frames;
 pub mod errors;
 pub mod system;
 
-mod angel_system;
+pub mod angel_system;
 pub use angel_system::{AngelSystem};
+
 
 /// Reexport libsodium things.
 pub mod crypto {

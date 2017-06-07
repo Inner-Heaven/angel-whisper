@@ -137,8 +137,7 @@ impl <S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S,A,H>{
  */
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
-    use blunder::Blunder;
-    use llsd::errors::{LlsdError, LlsdResult, LlsdErrorKind};
+    use llsd::errors::{LlsdErrorKind};
     use frames::Frame;
     use tokio_io::codec::{Encoder, Decoder};
     use bytes::BytesMut;
@@ -154,7 +153,13 @@ pub mod tokio {
         fn decode(&mut self, buf: &mut BytesMut) -> DecoderResult {
             match Frame::from_slice(&buf) {
                 Ok(frame)   => Ok(Some(frame)),
-                Err(e)      => Err(e.clone())
+                Err(e)      => {
+                    if *e == LlsdErrorKind::IncompleteFrame {
+                        Ok(None)
+                    } else {
+                        Err(e.clone())
+                    }
+                }
             }
         }
     }

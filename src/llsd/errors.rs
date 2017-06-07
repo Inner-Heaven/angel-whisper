@@ -18,7 +18,8 @@ pub enum LlsdErrorKind {
     UnknownClient,
     BadFrame,
     SessionExpired,
-    InvalidState
+    InvalidState,
+    IncompleteFrame
 }
 
 impl Error for LlsdErrorKind {
@@ -49,7 +50,7 @@ impl Into<io::Error> for LlsdErrorKind {
 }
 
 impl From<io::Error> for LlsdErrorKind {
-    fn from(error: io::Error) -> LlsdErrorKind {
+    fn from(_error: io::Error) -> LlsdErrorKind {
         LlsdErrorKind::BadFrame
     }
 }

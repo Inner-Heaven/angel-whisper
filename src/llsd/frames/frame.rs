@@ -87,7 +87,8 @@ impl Frame {
     pub fn from_slice(i: &[u8]) -> LlsdResult<Frame> {
         match parse_frame(i) {
             IResult::Done(_, frame) => Ok(frame),
-            _                       => fail!(LlsdErrorKind::BadFrame)
+            IResult::Incomplete(_)  => fail!(LlsdErrorKind::IncompleteFrame),
+            IResult::Error(_)       => fail!(LlsdErrorKind::BadFrame)
         }
     }
 }
@@ -139,7 +140,7 @@ mod test {
 
         assert_eq!(parsed_frame.is_err(), true);
         let err = parsed_frame.err().unwrap();
-        assert_eq!(*err, LlsdErrorKind::BadFrame);
+        assert_eq!(*err, LlsdErrorKind::IncompleteFrame);
     }
 
     fn make_frame() -> Frame {

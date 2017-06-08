@@ -44,6 +44,6 @@ after_success:
       cd ../.. &&
       rm -rf kcov-master &&
       rm -rf target/debug/* &&
-      cargo test --no-run &&
+      cargo test --no-run --lib &&
       for file in target/debug/angel_whisper-*; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --coveralls-id=$TRAVIS_JOB_ID --verify "target/cov/$(basename $file)" "$file"; done ;
       echo "Uploaded code coverage"

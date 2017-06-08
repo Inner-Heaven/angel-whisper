@@ -19,5 +19,31 @@ addons:
       - libdw-dev
       - binutils-dev
       - libcurl4-openssl-dev
+      - cmake
+      - gcc
+      - zlib1g-dev
     sources:
       - sourceline: ppa:chris-lea/libsodium
+      - kalakris-cmake
+# the main build
+script:
+  - |
+      cargo build &&
+      cargo test
+after_success:
+# measure code coverage and upload to coveralls.io
+  - |
+      wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+      tar xzf master.tar.gz &&
+      cd kcov-master &&
+      mkdir build &&
+      cd build &&
+      cmake .. &&
+      make &&
+      sudo make install &&
+      cd ../.. &&
+      rm -rf kcov-master &&
+      rm -rf target/debug/* &&
+      cargo test --no-run &&
+      for file in target/debug/angel_whisper-*; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --coveralls-id=$TRAVIS_JOB_ID --verify "target/cov/$(basename $file)" "$file"; done ;
+      echo "Uploaded code coverage"

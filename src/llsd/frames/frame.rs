@@ -1,7 +1,6 @@
 use sodiumoxide::crypto::box_::{Nonce, PublicKey};
-use byteorder::{WriteBytesExt};
 use nom::{rest, IResult};
-use bytes::{Bytes, BytesMut};
+use bytes::{Bytes, BytesMut, BufMut};
 
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 
@@ -70,12 +69,11 @@ impl Frame {
     /// Writes packed bytes to supplied buffer. This doesn't include legnth of the message.
     pub fn pack_to_buf(&self, buf: &mut BytesMut) {
         buf.reserve(self.length());
-        let mut kind = Vec::with_capacity(1);
         // Unwrap here makes sense, amirite?
-        kind.write_u8(self.kind as u8).unwrap();
+        //kind.write_u8(self.kind as u8).unwrap();
         buf.extend_from_slice(&self.id.0);
         buf.extend_from_slice(&self.nonce.0);
-        buf.extend_from_slice(&kind);
+        buf.put_u8(self.kind as u8);
         buf.extend_from_slice(&self.payload);
         ()
     }

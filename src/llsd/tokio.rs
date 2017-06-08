@@ -4,7 +4,7 @@ use frames::Frame;
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::codec::{Encoder, Decoder, Framed};
 use tokio_proto::pipeline::ServerProto;
-use bytes::BytesMut};
+use bytes::{BytesMut, BufMut};
 use std::io;
 use std::result::Result;
 use byteorder::{BigEndian, ByteOrder};
@@ -43,9 +43,10 @@ impl Encoder for FrameCodec {
     type Item = Frame;
     type Error = io::Error;
     fn encode(&mut self, msg: Frame, buf: &mut BytesMut) -> io::Result<()> {
-        let mut prefix = [0; 4];
-        BigEndian::write_u32(&mut prefix, msg.length() as u32);
-        buf.extend_from_slice(&prefix);
+        if buf.remaining_mut() < 4 {
+            buf.reserve(4);
+        }
+        buf.put_u32::<BigEndian>(msg.length() as u32);
         msg.pack_to_buf(buf);
         Ok(())
     }
@@ -82,7 +83,7 @@ mod test {
 
     #[test]
     fn test_decode() {
-        let mut buf = BytesMut::new();
+        let mut buf = BytesMut::with_capacity(70);
         let frame = make_frame();
         let mut codec = FrameCodec {};
         // First let's test if it can handle missing len
@@ -91,9 +92,7 @@ mod test {
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
 
-        let mut header = [0; 4];
-        BigEndian::write_u32(&mut header, frame.length() as u32);
-        buf.extend_from_slice(&header);
+        buf.put_u32::<BigEndian>(frame.length() as u32);
 
         // Message has just header
         let result = codec.decode(&mut buf);
@@ -117,9 +116,9 @@ mod test {
         assert!(result.unwrap().is_some());
 
 
-        buf.extend_from_slice(&header);
+        buf.put_u32::<BigEndian>(frame.length() as u32);
         frame.pack_to_buf(&mut buf);
-        buf.extend_from_slice(&header);
+        buf.put_u32::<BigEndian>(frame.length() as u32);
 
         // Two messages at once
         let result = codec.decode(&mut buf);
@@ -131,7 +130,7 @@ mod test {
     #[test]
     fn test_encode() {
         let frame = make_frame();
-        let mut buf = BytesMut::with_capacity(4 + frame.length());
+        let mut buf = BytesMut::new();
         let mut codec = FrameCodec {};
 
         let result = codec.encode(frame.clone(), &mut buf);

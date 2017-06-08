@@ -19,6 +19,7 @@ addons:
   apt:
     packages:
       - libsodium-dev
+      - libelf-dev
     sources:
       - sourceline: ppa:chris-lea/libsodium
 before_install:

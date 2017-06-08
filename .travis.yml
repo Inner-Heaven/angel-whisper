@@ -20,6 +20,7 @@ addons:
     packages:
       - libsodium-dev
       - libelf-dev
+      - libdw-dev
     sources:
       - sourceline: ppa:chris-lea/libsodium
 before_install:

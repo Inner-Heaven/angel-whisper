@@ -1,7 +1,8 @@
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey, Nonce};
+
 
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 use llsd::frames::{Frame, FrameKind};
+use sodiumoxide::crypto::box_::{PublicKey, SecretKey, Nonce};
 
 pub mod client;
 pub mod server;
@@ -23,7 +24,7 @@ pub enum SessionState {
     Ready,
     /// This state means that session established, but can't be used at the time. Session with this
     /// state would be killed by reaper on next run.
-    Error
+    Error,
 }
 
 
@@ -44,18 +45,18 @@ pub trait Sendable {
             id: self.id(),
             nonce: nonce,
             kind: FrameKind::Message,
-            payload: payload
+            payload: payload,
         };
         Ok(frame)
     }
 }
 #[cfg(test)]
 mod test {
-    use sodiumoxide::crypto::box_::{gen_keypair};
+    use super::Sendable;
 
     use super::client::Session as ClientSession;
     use super::server::Session as ServerSession;
-    use super::Sendable;
+    use sodiumoxide::crypto::box_::gen_keypair;
     #[test]
     fn test_successful_hashshake() {
         let client_lt = gen_keypair();
@@ -66,16 +67,24 @@ mod test {
 
         let hello_frame = client_session.make_hello();
 
-        let welcome_frame = server_session.make_welcome(&hello_frame, &server_lt.1).expect("Failed to create welcome");
+        let welcome_frame = server_session
+            .make_welcome(&hello_frame, &server_lt.1)
+            .expect("Failed to create welcome");
 
-        let initiate_frame = client_session.make_initiate(&welcome_frame).expect("Failed to create initiate");
+        let initiate_frame = client_session
+            .make_initiate(&welcome_frame)
+            .expect("Failed to create initiate");
 
         assert!(!client_session.can_send());
         assert!(!server_session.can_send());
-        let client_lt_pk = server_session.validate_initiate(&initiate_frame).expect("Failed to validate initiate frame");
+        let client_lt_pk = server_session
+            .validate_initiate(&initiate_frame)
+            .expect("Failed to validate initiate frame");
         assert_eq!(&client_lt_pk, &client_lt.0);
 
-        let ready_frame = server_session.make_ready(&initiate_frame, &client_lt_pk).expect("Failed to create readu frame");
+        let ready_frame = server_session
+            .make_ready(&initiate_frame, &client_lt_pk)
+            .expect("Failed to create readu frame");
 
 
         assert!(client_session.read_ready(&ready_frame).is_ok());
@@ -85,7 +94,9 @@ mod test {
 
 
         // Messages flow around like record
-        let from_client_to_server = client_session.make_message(b"Shout it loud and proud").unwrap();
+        let from_client_to_server = client_session
+            .make_message(b"Shout it loud and proud")
+            .unwrap();
         let from_client_to_server_read = server_session.read_msg(&from_client_to_server).unwrap();
         assert_eq!(&from_client_to_server_read, b"Shout it loud and proud");
 

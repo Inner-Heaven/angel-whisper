@@ -9,22 +9,18 @@ pub trait Authenticator: Clone + Send + Sync {
 
 /// Authenticator example that is very dumb, but great for testing
 pub struct DumbAuthenticator {
-    white_list: Arc<Vec<PublicKey>>
+    white_list: Arc<Vec<PublicKey>>,
 }
 
 impl Clone for DumbAuthenticator {
     fn clone(&self) -> DumbAuthenticator {
-        DumbAuthenticator {
-            white_list: self.white_list.clone()
-        }
+        DumbAuthenticator { white_list: self.white_list.clone() }
     }
 }
 
 impl DumbAuthenticator {
     pub fn new(keys: Vec<PublicKey>) -> DumbAuthenticator {
-        DumbAuthenticator {
-            white_list: Arc::new(keys)
-        }
+        DumbAuthenticator { white_list: Arc::new(keys) }
     }
 }
 
@@ -36,8 +32,8 @@ impl Authenticator for DumbAuthenticator {
 
 #[cfg(test)]
 mod test {
-    use sodiumoxide::crypto::box_;
     use super::*;
+    use sodiumoxide::crypto::box_;
 
     #[test]
     fn test_dumb_store() {

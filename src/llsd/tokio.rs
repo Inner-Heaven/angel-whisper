@@ -1,13 +1,12 @@
-
-use llsd::errors::{LlsdErrorKind};
+use byteorder::{BigEndian, ByteOrder};
+use bytes::{BytesMut, BufMut};
 use frames::Frame;
+use llsd::errors::LlsdErrorKind;
+use std::io;
+use std::result::Result;
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::codec::{Encoder, Decoder, Framed};
 use tokio_proto::pipeline::ServerProto;
-use bytes::{BytesMut, BufMut};
-use std::io;
-use std::result::Result;
-use byteorder::{BigEndian, ByteOrder};
 
 pub struct FrameCodec;
 
@@ -27,8 +26,8 @@ impl Decoder for FrameCodec {
         // We have a whole frame. Consume those bytes form the buffer.
         let data = buf.split_to(4 + payload_len);
         match Frame::from_slice(&data[4..]) {
-            Ok(frame)   => Ok(Some(frame)),
-            Err(e)      => {
+            Ok(frame) => Ok(Some(frame)),
+            Err(e) => {
                 if *e == LlsdErrorKind::IncompleteFrame {
                     Ok(None)
                 } else {
@@ -54,30 +53,30 @@ impl Encoder for FrameCodec {
 
 pub struct WhisperPipelinedProtocol;
 impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for WhisperPipelinedProtocol {
-    type Request        = Frame;
-    type Response       = Frame;
-    type Transport      = Framed<T, FrameCodec>;
-    type BindTransport  = Result<Self::Transport, io::Error>;
+    type Request = Frame;
+    type Response = Frame;
+    type Transport = Framed<T, FrameCodec>;
+    type BindTransport = Result<Self::Transport, io::Error>;
     fn bind_transport(&self, io: T) -> Self::BindTransport {
         Ok(io.framed(FrameCodec))
     }
 }
 #[cfg(test)]
 mod test {
-    use sodiumoxide::crypto::box_::{gen_keypair, gen_nonce};
-    use frames::FrameKind;
     use super::*;
+    use frames::FrameKind;
+    use sodiumoxide::crypto::box_::{gen_keypair, gen_nonce};
 
     fn make_frame() -> Frame {
-        let (pk, _)    = gen_keypair();
-        let payload     = vec![0,0,0];
-        let nonce       = gen_nonce();
+        let (pk, _) = gen_keypair();
+        let payload = vec![0, 0, 0];
+        let nonce = gen_nonce();
 
         Frame {
-            id:     pk,
-            nonce:  nonce,
-            kind:   FrameKind::Hello,
-            payload:payload
+            id: pk,
+            nonce: nonce,
+            kind: FrameKind::Hello,
+            payload: payload,
         }
     }
 

@@ -1,33 +1,39 @@
-use std::sync::{Arc, RwLock};
-use std::collections::HashMap;
-use std::default::Default;
 
-use sodiumoxide::crypto::box_::PublicKey;
 
 use super::sessionstore::SessionStore;
-use ::llsd::session::server::Session;
-use ::llsd::session::Sendable;
+use llsd::session::Sendable;
+use llsd::session::server::Session;
+
+use sodiumoxide::crypto::box_::PublicKey;
+use std::collections::HashMap;
+use std::default::Default;
+use std::sync::{Arc, RwLock};
 
 const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
 
 type Store = Arc<RwLock<HashMap<PublicKey, Arc<RwLock<Session>>>>>;
 pub struct HashMapStore {
-   store: Store
+    store: Store,
 }
 
 impl Clone for HashMapStore {
     fn clone(&self) -> HashMapStore {
-        HashMapStore {
-            store: self.store.clone()
-        }
+        HashMapStore { store: self.store.clone() }
     }
 }
 
 impl SessionStore for HashMapStore {
     fn insert(&self, session: Session) -> Option<()> {
         // Avoid write locks on map as hard as we can
-        if session.is_valid() && !self.store.read().expect(POISONED_LOCK_MSG).contains_key(&session.id()) {
-            self.store.write().expect(POISONED_LOCK_MSG).insert(session.id(), Arc::new(RwLock::new(session)));
+        if session.is_valid() &&
+           !self.store
+                .read()
+                .expect(POISONED_LOCK_MSG)
+                .contains_key(&session.id()) {
+            self.store
+                .write()
+                .expect(POISONED_LOCK_MSG)
+                .insert(session.id(), Arc::new(RwLock::new(session)));
             Some(())
         } else {
             None
@@ -53,9 +59,7 @@ impl SessionStore for HashMapStore {
 
 impl Default for HashMapStore {
     fn default() -> HashMapStore {
-        HashMapStore {
-            store: Arc::new(RwLock::new(HashMap::new()))
-        }
+        HashMapStore { store: Arc::new(RwLock::new(HashMap::new())) }
     }
 }
 
@@ -63,8 +67,8 @@ impl Default for HashMapStore {
 mod test {
     use super::*;
     use super::super::sessionstore::SessionStore;
-    use ::llsd::session::server::Session;
-    use ::llsd::session::Sendable;
+    use llsd::session::Sendable;
+    use llsd::session::server::Session;
     use sodiumoxide::crypto::box_;
 
     fn make_store() -> HashMapStore {
@@ -92,7 +96,7 @@ mod test {
         let subject1 = store.find_by_pk(&id).unwrap();
         let subj1_guard = subject1.read().unwrap();
         assert_eq!(*subj1_guard, session);
-        let subject2 =  store.find(&id.0).unwrap();
+        let subject2 = store.find(&id.0).unwrap();
         let subj2_guard = subject2.read().unwrap();
         assert_eq!(subj2_guard.id(), session.id());
     }

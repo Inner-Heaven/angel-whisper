@@ -1,10 +1,11 @@
-use chrono::{DateTime, UTC, Duration};
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey, seal, open, gen_keypair, gen_nonce, Nonce};
 
-use llsd::frames::{Frame, FrameKind};
-use llsd::errors::{LlsdResult, LlsdErrorKind};
 
 use super::{SessionState, Sendable};
+use chrono::{DateTime, UTC, Duration};
+use llsd::errors::{LlsdResult, LlsdErrorKind};
+
+use llsd::frames::{Frame, FrameKind};
+use sodiumoxide::crypto::box_::{PublicKey, SecretKey, seal, open, gen_keypair, gen_nonce, Nonce};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Session {
@@ -17,7 +18,7 @@ pub struct Session {
     /// This key should be know once session transitions to Ready state.
     client_pk: PublicKey,
     client_lt_pk: Option<PublicKey>,
-    state: SessionState
+    state: SessionState,
 }
 
 impl Session {
@@ -30,7 +31,7 @@ impl Session {
             state: SessionState::Fresh,
             st: gen_keypair(),
             client_pk: client_pk,
-            client_lt_pk: None
+            client_lt_pk: None,
         }
     }
     /// Verify that session is not expired
@@ -59,7 +60,7 @@ impl Session {
                 id: hello.id,
                 nonce: nonce,
                 kind: FrameKind::Welcome,
-                payload: welcome_box
+                payload: welcome_box,
             };
             Ok(welcome_frame)
         } else {
@@ -70,16 +71,22 @@ impl Session {
     /// A helper to extract client's permamanet public key from initiate frame in order to
     /// authenticate client. Authentication happens in another place.
     pub fn validate_initiate(&self, initiate: &Frame) -> Option<PublicKey> {
-        if let Ok(initiate_payload) = open(&initiate.payload, &initiate.nonce, &self.client_pk, &self.st.1) {
+        if let Ok(initiate_payload) =
+            open(&initiate.payload,
+                 &initiate.nonce,
+                 &self.client_pk,
+                 &self.st.1) {
             // TODO: change to != with proper size
             if initiate_payload.len() < 60 {
                 return None;
             }
             // unwrapping here because they only panic when input is shorter than needed.
             // TODO: slice that bitch properly
-            let pk      = PublicKey::from_slice(&initiate_payload[0..32]).expect("Failed to slice pk from payload");
-            let v_nonce = Nonce::from_slice(&initiate_payload[32..56]).expect("Failed to slice nonce from payload");
-            let v_box   = &initiate_payload[56..initiate_payload.len()];
+            let pk = PublicKey::from_slice(&initiate_payload[0..32])
+                .expect("Failed to slice pk from payload");
+            let v_nonce = Nonce::from_slice(&initiate_payload[32..56])
+                .expect("Failed to slice nonce from payload");
+            let v_box = &initiate_payload[56..initiate_payload.len()];
 
             if let Ok(vouch_payload) = open(v_box, &v_nonce, &pk, &self.st.1) {
                 let v_pk = PublicKey::from_slice(&vouch_payload).expect("Wrong Size Key!!!");
@@ -108,7 +115,7 @@ impl Session {
             id: initiate.id,
             nonce: nonce,
             kind: FrameKind::Ready,
-            payload: payload
+            payload: payload,
         };
         Ok(frame)
     }

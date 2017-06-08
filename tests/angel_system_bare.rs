@@ -1,15 +1,16 @@
 extern crate angel_whisper;
-#[macro_use] extern crate blunder;
+#[macro_use]
+extern crate blunder;
 
-use std::sync::{Arc, RwLock};
+use angel_whisper::{AngelSystem, ClientSession, ServerSession, Sendable};
 
 use angel_whisper::crypto::gen_keypair;
-use angel_whisper::system::hashmapstore::HashMapStore;
-use angel_whisper::system::authenticator::DumbAuthenticator;
-use angel_whisper::{AngelSystem, ClientSession, ServerSession, Sendable};
-use angel_whisper::frames::FrameKind;
 use angel_whisper::errors::{AWResult, AWErrorKind};
+use angel_whisper::frames::FrameKind;
 use angel_whisper::system::ServiceHub;
+use angel_whisper::system::authenticator::DumbAuthenticator;
+use angel_whisper::system::hashmapstore::HashMapStore;
+use std::sync::{Arc, RwLock};
 
 fn ping_pong(_: ServiceHub, _: Arc<RwLock<ServerSession>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
     if msg == b"ping".to_vec() {
@@ -28,7 +29,11 @@ fn handshake_and_ping_pong() {
     let store = HashMapStore::default();
     let authenticator = DumbAuthenticator::new(vec![our_pk]);
 
-    let system = AngelSystem::new(store, authenticator, server_pk.clone(), server_sk, ping_pong);
+    let system = AngelSystem::new(store,
+                                  authenticator,
+                                  server_pk.clone(),
+                                  server_sk,
+                                  ping_pong);
 
 
     let mut session = ClientSession::new(server_pk.clone(), (our_pk, our_sk));
@@ -49,7 +54,9 @@ fn handshake_and_ping_pong() {
     assert!(ready_status.is_ok());
 
 
-    let ping_frame = session.make_message(&b"ping".to_vec()).expect("Failed to create Message Frame");
+    let ping_frame = session
+        .make_message(&b"ping".to_vec())
+        .expect("Failed to create Message Frame");
     let pong_result = system.process(ping_frame);
     println!("{:#?}", pong_result);
     assert!(pong_result.is_ok());

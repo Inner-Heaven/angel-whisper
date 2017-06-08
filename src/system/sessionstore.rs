@@ -1,10 +1,10 @@
+
+
+pub use llsd::session::server::Session;
 use sodiumoxide::crypto::box_::PublicKey;
 use std::sync::{Arc, RwLock};
-
-pub use ::llsd::session::server::Session;
 /// This `Trait` defines session storage.
 pub trait SessionStore: Clone + Send + Sync {
-
     /// Look up session by its id
     fn find_by_pk(&self, key: &PublicKey) -> Option<Arc<RwLock<Session>>>;
 

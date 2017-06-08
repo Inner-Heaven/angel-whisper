@@ -1,9 +1,10 @@
-use typemap::TypeMap;
 
-use std::sync::{Arc, RwLock};
 
 use super::errors::AWResult;
 use super::llsd::session::server::Session;
+
+use std::sync::{Arc, RwLock};
+use typemap::TypeMap;
 
 pub mod router;
 pub mod authenticator;
@@ -15,7 +16,11 @@ pub type ServiceHub = Arc<RwLock<TypeMap>>;
 pub trait Handler: Send + Sync + 'static {
     /// Handle incoming message.
     #[inline]
-    fn handle(&self, services: ServiceHub, session: Arc<RwLock<Session>>, msg: Vec<u8>) -> AWResult<Vec<u8>>;
+    fn handle(&self,
+              services: ServiceHub,
+              session: Arc<RwLock<Session>>,
+              msg: Vec<u8>)
+              -> AWResult<Vec<u8>>;
 }
 
 impl<F> Handler for F

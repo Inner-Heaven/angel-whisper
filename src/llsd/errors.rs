@@ -1,14 +1,15 @@
-use std::result::Result;
+
+
+use blunder::Blunder;
+use std::convert::{Into, From};
 use std::error::Error;
 use std::fmt;
 use std::io;
-use std::convert::{Into, From};
-
-use blunder::Blunder;
+use std::result::Result;
 
 
 pub type LlsdError = Blunder<LlsdErrorKind>;
-pub type LlsdResult<T> = Result<T,LlsdError>;
+pub type LlsdResult<T> = Result<T, LlsdError>;
 
 
 #[derive(Debug, PartialEq, Clone)]
@@ -19,7 +20,7 @@ pub enum LlsdErrorKind {
     BadFrame,
     SessionExpired,
     InvalidState,
-    IncompleteFrame
+    IncompleteFrame,
 }
 
 impl Error for LlsdErrorKind {
@@ -29,14 +30,14 @@ impl Error for LlsdErrorKind {
 
     fn description(&self) -> &str {
         match *self {
-            _ => "Description not available"
+            _ => "Description not available",
         }
     }
 }
 
 impl fmt::Display for LlsdErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,"{}", self.description())
+        write!(f, "{}", self.description())
     }
 }
 
@@ -44,7 +45,7 @@ impl Into<io::Error> for LlsdErrorKind {
     fn into(self) -> io::Error {
         match self {
             LlsdErrorKind::BadFrame => io::Error::new(io::ErrorKind::InvalidData, self),
-            _                       => io::Error::new(io::ErrorKind::Other, self)
+            _ => io::Error::new(io::ErrorKind::Other, self),
         }
     }
 }

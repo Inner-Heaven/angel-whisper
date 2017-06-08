@@ -1,8 +1,8 @@
-use sodiumoxide::crypto::box_::{Nonce, PublicKey};
-use nom::{rest, IResult};
 use bytes::{Bytes, BytesMut, BufMut};
 
 use llsd::errors::{LlsdResult, LlsdErrorKind};
+use nom::{rest, IResult};
+use sodiumoxide::crypto::box_::{Nonce, PublicKey};
 
 /// Header size in bytes. Used to pre-allocate vector of correct size.
 pub const HEADER_SIZE: usize = 57;
@@ -23,7 +23,7 @@ pub enum FrameKind {
     Message,
     /// Termination frame. Usually used to indicate handshake error or session termination. Can be
     /// sent from either side.
-    Termination
+    Termination,
 }
 
 impl FrameKind {
@@ -35,7 +35,7 @@ impl FrameKind {
             4 => Some(FrameKind::Ready),
             5 => Some(FrameKind::Message),
             6 => Some(FrameKind::Termination),
-            _ => None
+            _ => None,
         }
     }
     pub fn from_slice(kind: &[u8]) -> Option<FrameKind> {
@@ -56,11 +56,10 @@ pub struct Frame {
     /// Message type as u8 BigEndian. 1 byte
     pub kind: FrameKind,
     /// Payload (that may or may not be encrypted)
-    pub payload: Vec<u8>
+    pub payload: Vec<u8>,
 }
 
 impl Frame {
-
     /// Calculates length of a frame;
     pub fn length(&self) -> usize {
         HEADER_SIZE + self.payload.len()
@@ -88,8 +87,8 @@ impl Frame {
     pub fn from_slice(i: &[u8]) -> LlsdResult<Frame> {
         match parse_frame(i) {
             IResult::Done(_, frame) => Ok(frame),
-            IResult::Incomplete(_)  => fail!(LlsdErrorKind::IncompleteFrame),
-            IResult::Error(_)       => fail!(LlsdErrorKind::BadFrame)
+            IResult::Incomplete(_) => fail!(LlsdErrorKind::IncompleteFrame),
+            IResult::Error(_) => fail!(LlsdErrorKind::BadFrame),
         }
     }
 }
@@ -117,10 +116,10 @@ named!(parse_frame < &[u8], Frame >,
 
 #[cfg(test)]
 mod test {
-    use sodiumoxide::crypto::box_::{gen_keypair, gen_nonce};
     use super::*;
 
     use llsd::errors::LlsdErrorKind;
+    use sodiumoxide::crypto::box_::{gen_keypair, gen_nonce};
 
     #[test]
     fn pack_and_unpack() {
@@ -135,7 +134,7 @@ mod test {
 
     #[test]
     fn malformed_frame() {
-        let packed_frame = vec![1 as u8, 2,3];
+        let packed_frame = vec![1 as u8, 2, 3];
 
         let parsed_frame = Frame::from_slice(&packed_frame);
 
@@ -145,15 +144,15 @@ mod test {
     }
 
     fn make_frame() -> Frame {
-        let (pk, _)    = gen_keypair();
-        let payload     = vec![0,0,0];
-        let nonce       = gen_nonce();
+        let (pk, _) = gen_keypair();
+        let payload = vec![0, 0, 0];
+        let nonce = gen_nonce();
 
         Frame {
-            id:     pk,
-            nonce:  nonce,
-            kind:   FrameKind::Hello,
-            payload:payload
+            id: pk,
+            nonce: nonce,
+            kind: FrameKind::Hello,
+            payload: payload,
         }
     }
 }

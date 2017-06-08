@@ -1,14 +1,15 @@
-use std::convert::{From, Into};
-use std::sync::{Arc, RwLock};
-use std::collections::HashMap;
-use std::default::Default;
 
-use murmurhash64::murmur_hash64a as hash;
-use byteorder::{BigEndian, ByteOrder};
 
 use super::{Handler, ServiceHub};
-use ::errors::{AWResult,AWErrorKind};
-use ::llsd::session::server::Session;
+use byteorder::{BigEndian, ByteOrder};
+use errors::{AWResult, AWErrorKind};
+use llsd::session::server::Session;
+
+use murmurhash64::murmur_hash64a as hash;
+use std::collections::HashMap;
+use std::convert::{From, Into};
+use std::default::Default;
+use std::sync::{Arc, RwLock};
 
 const SEED: u64 = 69;
 const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
@@ -35,46 +36,54 @@ impl From<String> for Route {
 
 #[derive(Clone)]
 pub struct Router {
-    store: Arc<RwLock<HashMap<Route, Box<Handler>>>>
+    store: Arc<RwLock<HashMap<Route, Box<Handler>>>>,
 }
 
 impl Router {
     pub fn register_route<R: Into<Route>, H: Handler>(&self, route: R, handler: H) {
-        self.store.write().expect(POISONED_LOCK_MSG).insert(route.into(), Box::new(handler));
+        self.store
+            .write()
+            .expect(POISONED_LOCK_MSG)
+            .insert(route.into(), Box::new(handler));
     }
 }
 impl Default for Router {
     fn default() -> Router {
-        Router {
-            store: Arc::new(RwLock::new(HashMap::new()))
-        }
+        Router { store: Arc::new(RwLock::new(HashMap::new())) }
     }
 }
 
 impl Handler for Router {
-    fn handle(&self, services: ServiceHub, session: Arc<RwLock<Session>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
-         if msg.len() < 8 {
+    fn handle(&self,
+              services: ServiceHub,
+              session: Arc<RwLock<Session>>,
+              msg: Vec<u8>)
+              -> AWResult<Vec<u8>> {
+        if msg.len() < 8 {
             fail!(AWErrorKind::BadFrame);
         }
         let route = BigEndian::read_u64(&msg);
-        match self.store.read().expect(POISONED_LOCK_MSG).get(&route.into()) {
-            None    => fail!(AWErrorKind::BadFrame),
-            Some(handler)   => handler.handle(services, session, msg)
+        match self.store
+                  .read()
+                  .expect(POISONED_LOCK_MSG)
+                  .get(&route.into()) {
+            None => fail!(AWErrorKind::BadFrame),
+            Some(handler) => handler.handle(services, session, msg),
         }
     }
 }
 #[cfg(test)]
 mod test {
     use super::*;
-    use ::llsd::session::server::Session;
-    use system::{Handler, ServiceHub};
+    use byteorder::{WriteBytesExt, BigEndian};
     use errors::AWResult;
+    use llsd::session::server::Session;
 
 
     use std::sync::{Arc, RwLock};
+    use system::{Handler, ServiceHub};
 
     use typemap::TypeMap;
-    use byteorder::{WriteBytesExt, BigEndian};
 
     fn get_route() -> Route {
         Route::from("system::test")
@@ -143,7 +152,7 @@ mod test {
     #[test]
     fn malformed() {
         let router = Router::default();
-        let req = vec![1,2];
+        let req = vec![1, 2];
 
         let res = router.handle(get_hub(), get_session(), req.clone());
         assert!(res.is_err());

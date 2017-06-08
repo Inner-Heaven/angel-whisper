@@ -5,16 +5,12 @@ rust:
   - nightly
 os:
   - linux
-  - osx
-
 cache:
   cargo: true
 
 matrix:
   allow_failures:
     - rust: nightly
-    - os: osx
-
 addons:
   apt:
     packages:
@@ -25,27 +21,3 @@ addons:
       - libcurl4-openssl-dev
     sources:
       - sourceline: ppa:chris-lea/libsodium
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libsodium; fi
-
-# load travis-cargo
-before_script:
-  - |
-      pip install 'travis-cargo<0.2' --user &&
-      export PATH=$HOME/.local/bin:$PATH
-
-# the main build
-script:
-  - |
-      travis-cargo build &&
-      travis-cargo test &&
-      travis-cargo bench
-after_success:
-  # upload the documentation from the build with stable (automatically only actually
-  # runs on the master branch, not individual PRs)
-  # - travis-cargo --only stable doc-upload
-  # measure code coverage and upload to coveralls.io (the verify
-  # argument mitigates kcov crashes due to malformed debuginfo, at the
-  # cost of some speed <https://github.com/huonw/travis-cargo/issues/12>)
-  - travis-cargo coveralls --no-sudo --verify

@@ -4,14 +4,14 @@ use super::errors::AWResult;
 use super::llsd::session::server::Session;
 
 use std::sync::{Arc, RwLock};
-use typemap::TypeMap;
+use typemap::ShareMap;
 
 pub mod router;
 pub mod authenticator;
 pub mod hashmapstore;
 pub mod sessionstore;
 
-pub type ServiceHub = Arc<RwLock<TypeMap>>;
+pub type ServiceHub = Arc<RwLock<ShareMap>>;
 
 pub trait Handler: Send + Sync + 'static {
     /// Handle incoming message.

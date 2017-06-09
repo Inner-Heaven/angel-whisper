@@ -45,7 +45,7 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
             authenticator: authenticator,
             public_key: pk,
             secret_key: sk,
-            services: Arc::new(RwLock::new(TypeMap::new())),
+            services: Arc::new(RwLock::new(TypeMap::custom())),
             handler: Arc::new(handler),
         }
     }
@@ -155,11 +155,15 @@ pub mod tokio {
     use std::sync::Arc;
     use tokio_service::Service;
 
-    #[derive(Clone)]
     pub struct InlineService<S: SessionStore, A: Authenticator, H: Handler> {
         system: Arc<AngelSystem<S, A, H>>,
     }
 
+    impl<S: SessionStore, A: Authenticator, H: Handler> Clone for InlineService<S, A, H> {
+        fn clone(&self) -> InlineService<S, A, H> {
+            InlineService::new(self.system.clone())
+        }
+    }
     impl<S: SessionStore, A: Authenticator, H: Handler> InlineService<S, A, H> {
         pub fn new(system: Arc<AngelSystem<S, A, H>>) -> InlineService<S, A, H> {
             InlineService { system: system.clone() }

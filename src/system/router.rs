@@ -90,7 +90,7 @@ mod test {
     }
 
     fn get_hub() -> ServiceHub {
-        Arc::new(RwLock::new(TypeMap::new()))
+        Arc::new(RwLock::new(TypeMap::custom()))
     }
     fn echo(_: ServiceHub, _: Arc<RwLock<Session>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
         Ok(msg)

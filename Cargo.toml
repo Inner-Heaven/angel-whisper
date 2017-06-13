@@ -6,6 +6,7 @@ version = "0.1.0"
 [dependencies]
 blunder = "0.1.7"
 byteorder = "1.0.0"
+bytes = "0.4"
 chrono = "0.2"
 murmurhash64 = "0.3.1"
 nom = "3.0"
@@ -14,7 +15,6 @@ slog = "2.0.6"
 sodiumoxide = "0.0.15"
 typemap = "0.3.3"
 uuid = "0.5"
-bytes = "0.4"
 
 [dependencies.futures]
 optional = true
@@ -23,6 +23,10 @@ version = "0.1.14"
 [dependencies.protobuf]
 optional = true
 version = "1.0"
+
+[dependencies.tokio-core]
+optional = true
+version = "0.1.8"
 
 [dependencies.tokio-io]
 optional = true
@@ -38,4 +42,4 @@ version = "0.1.0"
 
 [features]
 default = ["system-on-tokio"]
-system-on-tokio = ["protobuf", "tokio-proto", "tokio-service", "tokio-io", "futures"]
+system-on-tokio = ["protobuf", "tokio-proto", "tokio-service", "tokio-io", "tokio-core", "futures"]

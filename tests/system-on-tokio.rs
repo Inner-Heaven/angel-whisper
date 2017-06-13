@@ -21,6 +21,8 @@ use angel_whisper::crypto::{PublicKey, SecretKey};
 use std::sync::{Arc, RwLock};
 use tokio_proto::TcpServer;
 
+mod support;
+use support::mock;
 
 fn ping_pong(_: ServiceHub, _: Arc<RwLock<ServerSession>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
     if msg == b"ping".to_vec() {
@@ -56,5 +58,21 @@ fn test_streaming_pipeline_framed() {
 
 #[test]
 fn test_ping_pong() {
+    let (our_pk, our_sk) = gen_keypair();
+
+    let (server_pk, server_sk) = gen_keypair();
+
+    let store = HashMapStore::default();
+    let authenticator = DumbAuthenticator::new(vec![our_pk]);
+
+    let system = Arc::new(AngelSystem::new(store,
+                                           authenticator,
+                                           server_pk.clone(),
+                                           server_sk,
+                                           ping_pong));
+    let service = InlineService::new(system);
+
+    let mut session = ClientSession::new(server_pk.clone(), (our_pk, our_sk));
+
 
 }

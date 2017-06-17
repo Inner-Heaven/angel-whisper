@@ -88,25 +88,26 @@ fn test_ping_pong() {
     
     // spin new server on local host
     let addr = "127.0.0.1:12345".parse().unwrap();
-    let addr2 = "127.0.0.1:12345".parse().unwrap();
 
     let server_thread = thread::spawn(move || {
         let mut server = TcpServer::new(WhisperPipelinedProtocol, addr).serve(move || Ok(service.clone()));
     });
 
 
-    //let duration = std::time::Duration::from_secs(15);
-    //thread::sleep(duration);
 
-    let res = Client::new().connect(&addr2, &lp.handle()).and_then(|mut client| {
-        let hello_frame = session.make_hello();
-        let welcome_frame = client.call(hello_frame).wait().unwrap();
-        println!("Welcome Frame: {:?}", welcome_frame);
-        let initiate = session.make_initiate(&welcome_frame).unwrap();
-        client.call(initiate)
-    });
+    let duration = std::time::Duration::from_millis(100);
+    thread::sleep(duration);
+
+    let res = Client::new().connect(&addr, &lp.handle()).and_then(|mut client| {
+            println!("and_then");
+            client.call(session.make_hello()).map(|frame| (client, session, frame))
+        })
+        .and_then(|(client,  mut session, welcome_frame)| {
+            println!("Welcome Frame: {:?}", welcome_frame);
+            let initiate = session.make_initiate(&welcome_frame).unwrap();
+            client.call(initiate)
+        });
     let val = lp.run(res).unwrap();
-    println!("RESPONSE: {:?}", val);
 
     //server_thread.join();
 }

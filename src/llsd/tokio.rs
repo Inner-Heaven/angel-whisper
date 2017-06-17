@@ -6,7 +6,7 @@ use std::io;
 use std::result::Result;
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::codec::{Encoder, Decoder, Framed};
-use tokio_proto::pipeline::ServerProto;
+use tokio_proto::pipeline::{ServerProto, ClientProto};
 
 pub struct FrameCodec;
 
@@ -14,6 +14,7 @@ impl Decoder for FrameCodec {
     type Item = Frame;
     type Error = io::Error;
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Frame>> {
+        println!("{:?}", buf);
         // Check that if we have at least 4 bytes to read
         if buf.len() < 4 {
             return Ok(None);
@@ -61,6 +62,16 @@ impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for WhisperPipelinedPro
         Ok(io.framed(FrameCodec))
     }
 }
+impl<T: AsyncRead + AsyncWrite + 'static> ClientProto<T> for WhisperPipelinedProtocol {
+    type Request = Frame;
+    type Response = Frame;
+    type Transport = Framed<T, FrameCodec>;
+    type BindTransport = Result<Self::Transport, io::Error>;
+    fn bind_transport(&self, io: T) -> Self::BindTransport {
+        Ok(io.framed(FrameCodec))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

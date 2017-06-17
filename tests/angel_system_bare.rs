@@ -58,7 +58,6 @@ fn handshake_and_ping_pong() {
         .make_message(&b"ping".to_vec())
         .expect("Failed to create Message Frame");
     let pong_result = system.process(ping_frame);
-    println!("{:#?}", pong_result);
     assert!(pong_result.is_ok());
 
     let message_frame = pong_result.unwrap();

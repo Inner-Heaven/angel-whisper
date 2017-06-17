@@ -4,12 +4,11 @@ use angel_whisper::llsd::frames::Frame;
 use angel_whisper::llsd::tokio::WhisperPipelinedProtocol;
 use std::io;
 use std::net::SocketAddr;
-use futures::{Async, Future};
+use futures::{Future};
 use tokio_core::net::TcpStream;
 use tokio_core::reactor::Handle;
-use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_proto::TcpClient;
-use tokio_proto::pipeline::{ClientProto, ClientService};
+use tokio_proto::pipeline::{ClientService};
 use tokio_service::Service;
 
 pub struct Client {

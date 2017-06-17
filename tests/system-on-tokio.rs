@@ -14,19 +14,14 @@ use angel_whisper::angel_system::tokio::InlineService;
 
 use angel_whisper::crypto::gen_keypair;
 use angel_whisper::errors::{AWResult, AWErrorKind};
-use angel_whisper::frames::FrameKind;
 use angel_whisper::llsd::tokio::WhisperPipelinedProtocol;
-use angel_whisper::system::{ServiceHub, Handler};
+use angel_whisper::system::{ServiceHub};
 use angel_whisper::system::authenticator::DumbAuthenticator;
 use angel_whisper::system::hashmapstore::HashMapStore;
-use angel_whisper::system::authenticator::Authenticator;
-use angel_whisper::system::sessionstore::SessionStore;
-use angel_whisper::crypto::{PublicKey, SecretKey};
 use std::sync::{Arc, RwLock};
 use tokio_proto::TcpServer;
 use angel_whisper::tokio::Core;
 use angel_whisper::tokio::Service;
-use futures::Future;
 use std::thread;
 
 mod support;
@@ -43,7 +38,7 @@ fn ping_pong(_: ServiceHub, _: Arc<RwLock<ServerSession>>, msg: Vec<u8>) -> AWRe
 
 #[test]
 fn test_pipeline_framed_server_compiles() {
-    let (our_pk, our_sk) = gen_keypair();
+    let (our_pk, _our_sk) = gen_keypair();
 
     let (server_pk, server_sk) = gen_keypair();
 
@@ -89,28 +84,34 @@ fn test_ping_pong() {
     // spin new server on local host
     let addr = "127.0.0.1:12345".parse().unwrap();
 
-    let server_thread = thread::spawn(move || {
-        let mut server = TcpServer::new(WhisperPipelinedProtocol, addr).serve(move || Ok(service.clone()));
+    thread::spawn(move || {
+        TcpServer::new(WhisperPipelinedProtocol, addr).serve(move || Ok(service.clone()));
     });
 
 
 
-    let duration = std::time::Duration::from_millis(100);
+    let duration = std::time::Duration::from_millis(13);
     thread::sleep(duration);
 
-    let req = Client::new().connect(&addr, &lp.handle()).and_then(|mut client| {
-            client.call(session.make_hello());
-            });
-    let res = lp.run(req).wait().unwrap();
-    println!("RESPONSE: {:?}", res);
+    let client_future = Client::new().connect(&addr, &lp.handle());
+    let client = lp.run(client_future).unwrap();
 
-            /*
-        .and_then(|(client,  mut session, welcome_frame)| {
-            println!("Welcome Frame: {:?}", welcome_frame);
-            let initiate = session.make_initiate(&welcome_frame).unwrap();
-            client.call(initiate)
-        });*/
-    let val = lp.run(res).unwrap();
+    let welcome_request = client.call(session.make_hello());
+    let welcome_response = lp.run(welcome_request).unwrap();
 
-    server_thread.join();
+    let initiate_request = client.call(session.make_initiate(&welcome_response).unwrap());
+    let initiate_response = lp.run(initiate_request).unwrap();
+
+    let ready_status = session.read_ready(&initiate_response);
+    assert!(ready_status.is_ok());
+
+    let ping_frame = session
+        .make_message(&b"ping".to_vec())
+        .expect("Failed to create Message Frame");
+
+    let ping = client.call(ping_frame);
+    let pong = lp.run(ping).unwrap();
+
+    let pong_payload = session.read_msg(&pong).unwrap();
+    assert_eq!(pong_payload, b"pong".to_vec());
 }

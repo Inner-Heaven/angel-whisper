@@ -14,7 +14,6 @@ impl Decoder for FrameCodec {
     type Item = Frame;
     type Error = io::Error;
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Frame>> {
-        println!("{:?}", buf);
         // Check that if we have at least 4 bytes to read
         if buf.len() < 4 {
             return Ok(None);

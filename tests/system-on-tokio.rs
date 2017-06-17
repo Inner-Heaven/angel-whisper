@@ -98,16 +98,19 @@ fn test_ping_pong() {
     let duration = std::time::Duration::from_millis(100);
     thread::sleep(duration);
 
-    let res = Client::new().connect(&addr, &lp.handle()).and_then(|mut client| {
-            println!("and_then");
-            client.call(session.make_hello()).map(|frame| (client, session, frame))
-        })
+    let req = Client::new().connect(&addr, &lp.handle()).and_then(|mut client| {
+            client.call(session.make_hello());
+            });
+    let res = lp.run(req).wait().unwrap();
+    println!("RESPONSE: {:?}", res);
+
+            /*
         .and_then(|(client,  mut session, welcome_frame)| {
             println!("Welcome Frame: {:?}", welcome_frame);
             let initiate = session.make_initiate(&welcome_frame).unwrap();
             client.call(initiate)
-        });
+        });*/
     let val = lp.run(res).unwrap();
 
-    //server_thread.join();
+    server_thread.join();
 }

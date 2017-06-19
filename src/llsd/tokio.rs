@@ -1,8 +1,8 @@
 use byteorder::{BigEndian, ByteOrder};
 use bytes::{BytesMut, BufMut};
 use frames::Frame;
-use llsd::session::client::Session as ClientSession;
 use llsd::errors::LlsdErrorKind;
+use llsd::session::client::Session as ClientSession;
 use std::io;
 use std::result::Result;
 use tokio_io::{AsyncRead, AsyncWrite};
@@ -78,11 +78,12 @@ pub trait ClientHandshakeHelper {
     fn authenticate(&self, session: &mut ClientSession) -> Result<(), io::Error>;
 }
 
-impl<T> ClientHandshakeHelper for T where T: Service {
+impl<T> ClientHandshakeHelper for T
+    where T: Service
+{
     fn authenticate(&self, session: &mut ClientSession) -> Result<(), io::Error> {
         unimplemented!()
     }
-
 }
 
 #[cfg(test)]

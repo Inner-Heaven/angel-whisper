@@ -45,10 +45,10 @@ pub mod crypto {
 /// Reexport tokio things for building a client.
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
-    pub use tokio_service::Service;
     pub use futures::{Async, Future};
-    pub use tokio_proto::TcpClient;
     pub use tokio_core::net::TcpStream;
     pub use tokio_core::reactor::{Handle, Core};
+    pub use tokio_proto::TcpClient;
     pub use tokio_proto::pipeline::{ClientProto, ClientService};
+    pub use tokio_service::Service;
 }

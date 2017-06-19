@@ -29,14 +29,10 @@ fn handshake_and_ping_pong() {
     let store = HashMapStore::default();
     let authenticator = DumbAuthenticator::new(vec![our_pk]);
 
-    let system = AngelSystem::new(store,
-                                  authenticator,
-                                  server_pk.clone(),
-                                  server_sk,
-                                  ping_pong);
+    let system = AngelSystem::new(store, authenticator, server_pk, server_sk, ping_pong);
 
 
-    let mut session = ClientSession::new(server_pk.clone(), (our_pk, our_sk));
+    let mut session = ClientSession::new(server_pk, (our_pk, our_sk));
     let hello_result = system.process(session.make_hello());
     assert!(hello_result.is_ok());
     let welcome_frame = hello_result.unwrap();

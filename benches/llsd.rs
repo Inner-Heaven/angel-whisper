@@ -7,7 +7,6 @@ use angel_whisper::{AngelSystem, ClientSession, ServerSession, Sendable};
 
 use angel_whisper::crypto::gen_keypair;
 use angel_whisper::errors::{AWResult, AWErrorKind};
-use angel_whisper::frames::FrameKind;
 use angel_whisper::system::ServiceHub;
 use angel_whisper::system::authenticator::DumbAuthenticator;
 use angel_whisper::system::hashmapstore::HashMapStore;
@@ -35,22 +34,19 @@ fn ping_pong_bench(b: &mut Bencher) {
     let store = HashMapStore::default();
     let authenticator = DumbAuthenticator::new(vec![our_pk]);
 
-    let system = AngelSystem::new(store,
-                                  authenticator,
-                                  server_pk.clone(),
-                                  server_sk,
-                                  ping_pong);
+    let system = AngelSystem::new(store, authenticator, server_pk, server_sk, ping_pong);
 
 
-    let mut session = ClientSession::new(server_pk.clone(), (our_pk, our_sk));
+    let mut session = ClientSession::new(server_pk, (our_pk, our_sk));
     let welcome_frame = system.process(session.make_hello()).unwrap();
     let initiate_frame = session.make_initiate(&welcome_frame).unwrap();
     let ready_frame = system.process(initiate_frame).unwrap();
-    session.read_ready(&ready_frame);
+    let _ = session.read_ready(&ready_frame);
     b.iter(|| {
                let ping_frame = test::black_box(session
                                                     .make_message(&b"ping".to_vec())
                                                     .expect("Failed to create Message Frame"));
-               system.process(ping_frame);
+               let res = system.process(ping_frame);
+               assert!(res.is_ok());
            })
 }

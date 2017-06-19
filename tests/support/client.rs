@@ -2,13 +2,13 @@ extern crate angel_whisper;
 
 use angel_whisper::llsd::frames::Frame;
 use angel_whisper::llsd::tokio::WhisperPipelinedProtocol;
+use futures::Future;
 use std::io;
 use std::net::SocketAddr;
-use futures::{Future};
 use tokio_core::net::TcpStream;
 use tokio_core::reactor::Handle;
 use tokio_proto::TcpClient;
-use tokio_proto::pipeline::{ClientService};
+use tokio_proto::pipeline::ClientService;
 use tokio_service::Service;
 
 pub struct Client {
@@ -21,14 +21,13 @@ pub struct ClientHandle {
 
 impl Client {
     pub fn new() -> Client {
-        Client {
-            _private: (),
-        }
+        Client { _private: () }
     }
 
-    pub fn connect(self, addr: &SocketAddr, handle: &Handle)
-            -> Box<Future<Item = ClientHandle, Error = io::Error>>
-    {
+    pub fn connect(self,
+                   addr: &SocketAddr,
+                   handle: &Handle)
+                   -> Box<Future<Item = ClientHandle, Error = io::Error>> {
         let ret = TcpClient::new(WhisperPipelinedProtocol)
             .connect(addr, handle)
             .map(|c| ClientHandle { inner: c });

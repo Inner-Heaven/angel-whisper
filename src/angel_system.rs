@@ -61,13 +61,13 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
 
     fn process_hello(&self, frame: &Frame) -> AWResult<Frame> {
         // Verify it's a new session
-        if let Some(_) = self.sessions.find_by_pk(&frame.id) {
+        if self.sessions.find_by_pk(&frame.id).is_some() {
             fail!(AWErrorKind::IncorrectState);
         }
         let session = Session::new(frame.id);
 
         // If inserting session failed - bail out early.
-        if let None = self.sessions.insert(session) {
+        if self.sessions.insert(session).is_none() {
             fail!(AWErrorKind::ServerFault);
         }
 

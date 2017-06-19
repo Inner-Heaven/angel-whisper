@@ -87,7 +87,7 @@ impl Session {
             fail!(LlsdErrorKind::InvalidState)
         }
         if let Some(msg) = self.read_msg(ready) {
-            if &msg == &READY_PAYLOAD {
+            if msg == READY_PAYLOAD {
                 self.state = SessionState::Ready;
                 return Ok(());
             }

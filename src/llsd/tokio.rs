@@ -81,7 +81,7 @@ pub trait ClientHandshakeHelper {
 impl<T> ClientHandshakeHelper for T
     where T: Service
 {
-    fn authenticate(&self, session: &mut ClientSession) -> Result<(), io::Error> {
+    fn authenticate(&self, _session: &mut ClientSession) -> Result<(), io::Error> {
         unimplemented!()
     }
 }

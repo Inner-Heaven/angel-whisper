@@ -105,7 +105,8 @@ impl Session {
         }
 
         // If client spend more than 3 minutes to come up with initiate - fuck him.
-        if (self.created_at - UTC::now()) > Duration::minutes(3) {
+        let duration_since = UTC::now().signed_duration_since(self.created_at);
+        if duration_since > Duration::minutes(3) {
             fail!(LlsdErrorKind::HandshakeFailed)
         }
         self.state = SessionState::Ready;

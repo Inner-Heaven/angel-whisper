@@ -2,14 +2,11 @@ use byteorder::{BigEndian, ByteOrder};
 use bytes::{BytesMut, BufMut};
 use frames::Frame;
 use llsd::errors::LlsdErrorKind;
-use llsd::session::client::Session as ClientSession;
 use std::io;
 use std::result::Result;
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::codec::{Encoder, Decoder, Framed};
 use tokio_proto::pipeline::{ServerProto, ClientProto};
-use tokio_service::Service;
-
 
 pub struct FrameCodec;
 
@@ -71,18 +68,6 @@ impl<T: AsyncRead + AsyncWrite + 'static> ClientProto<T> for WhisperPipelinedPro
     type BindTransport = Result<Self::Transport, io::Error>;
     fn bind_transport(&self, io: T) -> Self::BindTransport {
         Ok(io.framed(FrameCodec))
-    }
-}
-
-pub trait ClientHandshakeHelper {
-    fn authenticate(&self, session: &mut ClientSession) -> Result<(), io::Error>;
-}
-
-impl<T> ClientHandshakeHelper for T
-    where T: Service
-{
-    fn authenticate(&self, _session: &mut ClientSession) -> Result<(), io::Error> {
-        unimplemented!()
     }
 }
 

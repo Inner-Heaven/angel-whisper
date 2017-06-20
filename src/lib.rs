@@ -1,4 +1,3 @@
-#![deny(missing_docs)]
 #[macro_use]
 extern crate blunder;
 extern crate sodiumoxide;

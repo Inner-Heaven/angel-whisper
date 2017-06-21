@@ -63,6 +63,8 @@ pub struct Frame {
     pub payload: Vec<u8>,
 }
 
+/// Main unit of information passed from client to server. This thing doesn't care what payload it as long as Frame has correct header.
+/// This way you can used whatever you want as your internal message format — JSON, BSON, TSV, Protocol Buffers, etc.
 impl Frame {
     /// Calculates length of a frame;
     pub fn length(&self) -> usize {

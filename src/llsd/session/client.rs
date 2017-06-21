@@ -1,7 +1,8 @@
 
 
 use super::{SessionState, KeyPair, NULL_BYTES, Sendable};
-use chrono::{DateTime, UTC};
+use chrono::{DateTime};
+use chrono::offset::Utc;
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 
 use llsd::frames::{Frame, FrameKind};
@@ -13,7 +14,7 @@ const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
 /// Client side session.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Session {
-    created_at: DateTime<UTC>,
+    created_at: DateTime<Utc>,
     st: KeyPair,
     our_pair: KeyPair,
     state: SessionState,
@@ -26,7 +27,7 @@ impl Session {
     /// key.
     pub fn new(server_lt_pk: PublicKey, our_pair: KeyPair) -> Session {
         Session {
-            created_at: UTC::now(),
+            created_at: Utc::now(),
             st: gen_keypair(),
             our_pair: our_pair,
             state: SessionState::Fresh,

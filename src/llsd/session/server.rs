@@ -1,7 +1,8 @@
 
 
 use super::{SessionState, Sendable};
-use chrono::{DateTime, UTC, Duration};
+use chrono::{DateTime, Duration};
+use chrono::offset::Utc;
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 
 use llsd::frames::{Frame, FrameKind};
@@ -12,8 +13,8 @@ use sodiumoxide::crypto::box_::{PublicKey, SecretKey, seal, open, gen_keypair, g
 pub struct Session {
     /// What time session should be considered exprired? Treat session as short-lived entity.
     /// There is no reason not to start a new sesion every hour.
-    expire_at: DateTime<UTC>,
-    created_at: DateTime<UTC>,
+    expire_at: DateTime<Utc>,
+    created_at: DateTime<Utc>,
     /// Short-term key pair for our side
     st: (PublicKey, SecretKey),
     /// This key should be know once session transitions to Ready state.
@@ -27,8 +28,8 @@ impl Session {
     /// long-term pair stored in session manager or else where.
     pub fn new(client_pk: PublicKey) -> Session {
         Session {
-            expire_at: UTC::now() + Duration::minutes(34),
-            created_at: UTC::now(),
+            expire_at: Utc::now() + Duration::minutes(34),
+            created_at: Utc::now(),
             state: SessionState::Fresh,
             st: gen_keypair(),
             client_pk: client_pk,
@@ -37,7 +38,7 @@ impl Session {
     }
     /// Verify that session is not expired
     pub fn is_valid(&self) -> bool {
-        self.expire_at > UTC::now()
+        self.expire_at > Utc::now()
     }
 
     /// Helper to make a Welcome frame, a reply to Hello frame. Server worflow.
@@ -106,7 +107,7 @@ impl Session {
         }
 
         // If client spend more than 3 minutes to come up with initiate - fuck him.
-        let duration_since = UTC::now().signed_duration_since(self.created_at);
+        let duration_since = Utc::now().signed_duration_since(self.created_at);
         if duration_since > Duration::minutes(3) {
             fail!(LlsdErrorKind::HandshakeFailed)
         }

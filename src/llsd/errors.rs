@@ -7,19 +7,26 @@ use std::fmt;
 use std::io;
 use std::result::Result;
 
-
+/// Error type that should be unsed inside of llsd module.
 pub type LlsdError = Blunder<LlsdErrorKind>;
+/// Result type that should be used inside of llsd module.
 pub type LlsdResult<T> = Result<T, LlsdError>;
 
 
 #[derive(Debug, PartialEq, Clone)]
+/// Types of error that can be returned within this error.
 pub enum LlsdErrorKind {
+    /// Error during handshake stage. Probably means server doesn't recognize the client
     HandshakeFailed,
+    /// Payload is too big. You don't want make server or client do decryption of your movie collection in request.  
     MessageTooBig,
-    UnknownClient,
+    /// Read it as decryption failed.
     BadFrame,
+    /// Stale session. Remember, each session expiry regardless of activity in predefined intervals. Client should handle this without comsumer notice.
     SessionExpired,
+    /// Handshake frames have to be sent in specific order. Messages can be sent only when session is Ready.
     InvalidState,
+    /// Missing some bytes.
     IncompleteFrame,
 }
 

@@ -8,6 +8,7 @@ use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey, seal, open, gen_keypair, gen_nonce, Nonce};
 
 #[derive(Debug, Clone, PartialEq)]
+/// Server side session.
 pub struct Session {
     /// What time session should be considered exprired? Treat session as short-lived entity.
     /// There is no reason not to start a new sesion every hour.

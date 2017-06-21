@@ -6,6 +6,8 @@ use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
 
+/// Engine is the core of client. Meant to be replacable and interchargable, so you can use threaded clients with tokio based servers and vice-versa. This trait also provides some helpers by default.
+/// Minimal implementation is make_async_call() and session(). If client isn't async — just return resolved future in make_async_all method.
 pub trait Engine {
     /// Make a sync RPC call. Default implementation is calling async and wait for it to complete.
     fn make_call(&self, req: Frame) -> Result<Frame, io::Error> {

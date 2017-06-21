@@ -10,6 +10,7 @@ use sodiumoxide::crypto::box_::{PublicKey, seal, open, gen_keypair, gen_nonce, N
 const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
 
 
+/// Client side session.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Session {
     created_at: DateTime<UTC>,
@@ -82,6 +83,7 @@ impl Session {
         }
     }
 
+    /// Verify that reply to initiate frame is correct ready frame. Changes session state if so. 
     pub fn read_ready(&mut self, ready: &Frame) -> LlsdResult<()> {
         if self.state != SessionState::Fresh || ready.kind != FrameKind::Ready {
             fail!(LlsdErrorKind::InvalidState)

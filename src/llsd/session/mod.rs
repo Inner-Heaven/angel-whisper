@@ -4,8 +4,11 @@ use llsd::errors::{LlsdResult, LlsdErrorKind};
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey, Nonce};
 
+/// Things that are required to build a client.
 pub mod client;
+/// Things that are required to build a server.
 pub mod server;
+/// Just an alias...
 pub type KeyPair = (PublicKey, SecretKey);
 
 /// Array of null bytes used in Hello package. Needs to be bigger than Welcome frame to prevent
@@ -27,12 +30,15 @@ pub enum SessionState {
     Error,
 }
 
-
+/// Helper method for both Client and Server Sessions. Implement required methods and get helper to generate message frames.
 pub trait Sendable {
+    /// Return short term public key of the sender side.
     fn id(&self) -> PublicKey;
-
+    /// Decrypt payload of a frame if any.
     fn read_msg(&self, frame: &Frame) -> Option<Vec<u8>>;
+    /// Encrypt payload ot be packed in frame. Should not be used directly.
     fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>);
+    /// helper method to check if session is ready to send messages.
     fn can_send(&self) -> bool;
 
     /// Helper to send a Message Frame.

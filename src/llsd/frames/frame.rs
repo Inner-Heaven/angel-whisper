@@ -26,7 +26,9 @@ pub enum FrameKind {
     Termination,
 }
 
+/// Each frame has it's kind. Meant to be expandable. 
 impl FrameKind {
+    /// Since we don't have TryFrom...
     pub fn from(kind: u8) -> Option<FrameKind> {
         match kind {
             1 => Some(FrameKind::Hello),
@@ -38,6 +40,7 @@ impl FrameKind {
             _ => None,
         }
     }
+    /// Alias to method above, but returns an error if there're more than one byte,
     pub fn from_slice(kind: &[u8]) -> Option<FrameKind> {
         if kind.len() != 1 {
             return None;
@@ -46,7 +49,8 @@ impl FrameKind {
     }
 }
 
-
+/// Main unit of information passed from client to server. This thing doesn't care what payload it as long as Frame has correct header.
+/// This way you can used whatever you want as your internal message format — JSON, BSON, TSV, Protocol Buffers, etc.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Frame {
     /// Session identificator. 32 bytes

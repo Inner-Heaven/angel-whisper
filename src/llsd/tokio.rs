@@ -8,6 +8,7 @@ use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::codec::{Encoder, Decoder, Framed};
 use tokio_proto::pipeline::{ServerProto, ClientProto};
 
+/// Tokio style codec for both client and server. It uses 4 bytes to prefix frame with length of the frame. 
 pub struct FrameCodec;
 
 impl Decoder for FrameCodec {
@@ -51,6 +52,7 @@ impl Encoder for FrameCodec {
     }
 }
 
+/// Tokio Protocol for both clients and servers. This is Pipeline version of it. Very default framed protocol from tokio.
 pub struct WhisperPipelinedProtocol;
 impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for WhisperPipelinedProtocol {
     type Request = Frame;

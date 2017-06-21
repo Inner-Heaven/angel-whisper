@@ -8,6 +8,9 @@ use llsd::errors::{LlsdResult, LlsdErrorKind};
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey, seal, open, gen_keypair, gen_nonce, Nonce};
 
+const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
+
+
 #[derive(Debug, Clone, PartialEq)]
 /// Server side session.
 pub struct Session {
@@ -113,7 +116,7 @@ impl Session {
         }
         self.state = SessionState::Ready;
         self.client_lt_pk = Some(*client_lt_pk);
-        let (nonce, payload) = self.seal_msg(b"My body is ready");
+        let (nonce, payload) = self.seal_msg(READY_PAYLOAD);
         let frame = Frame {
             id: initiate.id,
             nonce: nonce,

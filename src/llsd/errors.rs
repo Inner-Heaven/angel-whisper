@@ -18,7 +18,7 @@ pub type LlsdResult<T> = Result<T, LlsdError>;
 pub enum LlsdErrorKind {
     /// Error during handshake stage. Probably means server doesn't recognize the client
     HandshakeFailed,
-    /// Payload is too big. You don't want make server or client do decryption of your movie collection in request.  
+    /// Payload is too big. You don't want make server or client do decryption of your movie collection in request.
     MessageTooBig,
     /// Read it as decryption failed.
     BadFrame,

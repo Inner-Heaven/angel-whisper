@@ -26,7 +26,7 @@ pub enum FrameKind {
     Termination,
 }
 
-/// Each frame has it's kind. Meant to be expandable. 
+/// Each frame has it's kind. Meant to be expandable.
 impl FrameKind {
     /// Since we don't have TryFrom...
     pub fn from(kind: u8) -> Option<FrameKind> {

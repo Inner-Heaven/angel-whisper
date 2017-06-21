@@ -8,5 +8,5 @@ pub mod frames;
 /// Things related to running either client or server on top of tokio.
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio;
-/// This should be a separate crate in the future. Things related to building a client to AngelSystem.
+/// This should be a separate crate in the future. Things related to building a client to `AngelSystem`.
 pub mod client;

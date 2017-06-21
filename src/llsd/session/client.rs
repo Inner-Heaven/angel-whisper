@@ -1,7 +1,7 @@
 
 
 use super::{SessionState, KeyPair, NULL_BYTES, Sendable};
-use chrono::{DateTime};
+use chrono::DateTime;
 use chrono::offset::Utc;
 use llsd::errors::{LlsdResult, LlsdErrorKind};
 
@@ -84,7 +84,7 @@ impl Session {
         }
     }
 
-    /// Verify that reply to initiate frame is correct ready frame. Changes session state if so. 
+    /// Verify that reply to initiate frame is correct ready frame. Changes session state if so.
     pub fn read_ready(&mut self, ready: &Frame) -> LlsdResult<()> {
         if self.state != SessionState::Fresh || ready.kind != FrameKind::Ready {
             fail!(LlsdErrorKind::InvalidState)

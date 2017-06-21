@@ -8,7 +8,7 @@ use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::codec::{Encoder, Decoder, Framed};
 use tokio_proto::pipeline::{ServerProto, ClientProto};
 
-/// Tokio style codec for both client and server. It uses 4 bytes to prefix frame with length of the frame. 
+/// Tokio style codec for both client and server. It uses 4 bytes to prefix frame with length of the frame.
 pub struct FrameCodec;
 
 impl Decoder for FrameCodec {

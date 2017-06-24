@@ -6,10 +6,18 @@ use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
 
+use futures::future::Future;
+
+/// shortcut for futures that are returned by `Engine`.
+pub type EngineFuture = Box<Future<Item = Frame, Error = io::Error>>;
+
 /// Engine is the core of client.
 pub trait Engine {
     /// Make a RPC call to remote server.
     fn make_call(&self, req: Frame) -> Result<Frame, io::Error>;
+
+    /// Create Future for RPC call. Result of this function must be submited to reactor.
+    fn create_call(&self, req: Frame) -> EngineFuture;
 
     /// Return reference to session.
     fn session(&mut self) -> Rc<RefCell<Session>>;
@@ -49,11 +57,11 @@ pub trait Engine {
 pub mod tokio {
     use futures;
     use futures::Future;
-    use llsd::client::Engine;
     use llsd::frames::Frame;
     use llsd::session::KeyPair;
     use llsd::session::client::Session;
     use llsd::tokio::WhisperPipelinedProtocol;
+    use super::{EngineFuture, Engine};
     use sodiumoxide::crypto::box_::PublicKey;
     use std::cell::RefCell;
     use std::io;
@@ -83,7 +91,7 @@ pub mod tokio {
         type Request = Frame;
         type Response = Frame;
         type Error = io::Error;
-        type Future = Box<Future<Item = Frame, Error = io::Error>>;
+        type Future = EngineFuture;
 
         fn call(&self, req: Frame) -> Box<Future<Item = Frame, Error = io::Error>> {
             Box::new(self.inner.call(req))
@@ -135,6 +143,20 @@ pub mod tokio {
                 session: None,
             }
         }
+        
+        /// Execute given future on whatever reactor is assigned to this client.
+        pub fn execute(&self, future: EngineFuture) -> Result<Frame, io::Error> {
+                      let (tx, rx) = futures::oneshot();
+
+            let call = future.then(|resp| {
+                          let _ = tx.send(resp);
+                          Ok(())
+                      });
+
+            self.handle.spawn(call);
+
+            rx.wait().expect("Someone canceled future")
+        }
     }
 
     impl Engine for TcpPipelineEngine {
@@ -151,27 +173,19 @@ pub mod tokio {
         }
 
         fn server_public_key(&self) -> PublicKey {
-            self.server_public_key.clone()
+            self.server_public_key
         }
 
         fn our_long_term_keys(&self) -> KeyPair {
             self.long_term_keys.clone()
         }
         fn make_call(&self, req: Frame) -> Result<Frame, io::Error> {
-            let (tx, rx) = futures::oneshot();
+            let call = self.inner.call(req);
+            self.execute(Box::new(call))
+        }
 
-            let call = self.inner
-                .call(req)
-                .then(|resp| {
-                          let _ = tx.send(resp);
-                          Ok(())
-                      });
-
-            self.handle.spawn(call);
-
-            let response = rx.wait().expect("Someone canceled future");
-
-            response
+        fn create_call(&self, req: Frame) -> Box<Future<Item = Frame, Error= io::Error>> {
+            Box::new(self.inner.call(req))
         }
     }
     #[cfg(test)]
@@ -179,7 +193,7 @@ pub mod tokio {
         use super::*;
 
         use ::crypto::gen_keypair;
-        use std::net::SocketAddr;
+
         #[test]
         fn without_handler_compiles() {
             if false {

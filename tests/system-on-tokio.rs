@@ -144,7 +144,6 @@ fn test_tokio_client_engine() {
         TcpPipelineEngine::connect(&addr, core.handle(), (our_pk, our_sk.clone()), server_pk);
     let mut client = core.run(client_future).expect("failed to connect");
 
-    println!("Connected");
     let handshake_future = client.authenticate();
 
     let handshake_result = core.run(handshake_future);
@@ -156,7 +155,7 @@ fn test_tokio_client_engine() {
         .make_message(&b"ping".to_vec())
         .expect("Failed to create Message Frame");
 
-    let ping = client.request(ping_frame);
+    let ping = client.call(ping_frame);
     let pong = core.run(ping).unwrap();
 
     let pong_payload = session.borrow().read_msg(&pong).unwrap();

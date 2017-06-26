@@ -1,6 +1,7 @@
 
 
 use futures::Poll;
+use futures::future;
 use futures::future::Future;
 use llsd::frames::Frame;
 use llsd::session::KeyPair;
@@ -10,8 +11,18 @@ use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
 
-/// Engine is the core of client.
+/// Enum to describe what state connection is.
+#[derive(PartialEq)]
+pub enum ConnectionState {
+    /// Has what looks like a valid (not expired and authenticated) session.
+    Ready,
+    /// Doesn't have session or session is expired.
+    NotReady,
+}
+/// Engine is the core of client. TODO: Make it take anything that can be packed into frame, so consumer doesn't have to use session stucture at all.
 pub trait Engine {
+    /// Get state of the current connection.
+    fn connection_state(&self) -> ConnectionState;
     /// Return reference to session.
     fn session(&mut self) -> Rc<RefCell<Session>>;
 
@@ -29,8 +40,20 @@ pub trait Engine {
         Session::new(self.server_public_key(), self.our_long_term_keys())
     }
 
-    /// Make an RPC.
-    fn request(&self, req: Frame) -> FutureResponse;
+    /// Make an RPC. This call verify that connection is in the right state.
+    fn request(&self, req: Frame) -> FutureResponse {
+        if self.connection_state() == ConnectionState::Ready {
+            self.call(req)
+        } else {
+            let err = io::Error::new(io::ErrorKind::Other, "Invalid state");
+            let f = future::err(err);
+            FutureResponse(Box::new(f))
+        }
+    }
+
+    /// Make and RPC. This call doesn't take care of handshake and session;
+    /// regeneration.
+    fn call(&self, req: Frame) -> FutureResponse;
 }
 
 /// Future reprensenting the result of RPC call.
@@ -57,11 +80,11 @@ impl Future for FutureHandshake {
 /// Tokio backed implementation of client.
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
-    use super::{Engine, FutureHandshake, FutureResponse};
+    use super::{ConnectionState, Engine, FutureHandshake, FutureResponse};
     use futures;
     use futures::Future;
     use llsd::frames::Frame;
-    use llsd::session::KeyPair;
+    use llsd::session::{KeyPair, Sendable};
     use llsd::session::client::Session;
     use llsd::tokio::WhisperPipelinedProtocol;
     use sodiumoxide::crypto::box_::PublicKey;
@@ -110,6 +133,17 @@ pub mod tokio {
     }
 
     impl Engine for TcpPipelineEngine {
+        fn connection_state(&self) -> ConnectionState {
+            if let Some(session) = self.session.clone() {
+                if session.borrow().can_send() {
+                    ConnectionState::Ready
+                } else {
+                    ConnectionState::NotReady
+                }
+            } else {
+                ConnectionState::NotReady
+            }
+        }
         fn session(&mut self) -> Rc<RefCell<Session>> {
             let s = self.session.clone();
             if let Some(session) = s {
@@ -167,7 +201,7 @@ pub mod tokio {
             FutureHandshake(Box::new(handshake))
         }
 
-        fn request(&self, req: Frame) -> FutureResponse {
+        fn call(&self, req: Frame) -> FutureResponse {
             let service = self.inner.clone();
             let f = service.borrow().call(req);
 

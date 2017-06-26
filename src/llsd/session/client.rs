@@ -1,7 +1,7 @@
 
 
 use super::{KeyPair, NULL_BYTES, Sendable, SessionState};
-use chrono::DateTime;
+use chrono::{DateTime, Duration};
 use chrono::offset::Utc;
 use llsd::errors::{LlsdErrorKind, LlsdResult};
 
@@ -14,6 +14,7 @@ const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
 /// Client side session.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Session {
+    expire_at: DateTime<Utc>,
     created_at: DateTime<Utc>,
     st: KeyPair,
     our_pair: KeyPair,
@@ -28,6 +29,7 @@ impl Session {
     /// key.
     pub fn new(server_lt_pk: PublicKey, our_pair: KeyPair) -> Session {
         Session {
+            expire_at: Utc::now() + Duration::minutes(34),
             created_at: Utc::now(),
             st: gen_keypair(),
             our_pair: our_pair,
@@ -126,7 +128,7 @@ impl Sendable for Session {
     }
 
     fn can_send(&self) -> bool {
-        self.state == SessionState::Ready
+        self.state == SessionState::Ready && self.expire_at > Utc::now()
     }
 
     fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>) {

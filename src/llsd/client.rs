@@ -123,7 +123,7 @@ pub mod tokio {
         }
 
         fn server_public_key(&self) -> PublicKey {
-            self.server_public_key.clone()
+            self.server_public_key
         }
 
         fn our_long_term_keys(&self) -> KeyPair {

@@ -147,9 +147,9 @@ fn test_tokio_client_engine() {
     println!("Connected");
     let handshake_future = client.authenticate();
 
-    let handshake_result = core.run(handshake_future).expect("handshake failed");
+    let handshake_result = core.run(handshake_future);
 
-    assert_eq!((), handshake_result);
+    assert!(handshake_result.is_ok());
     let session = client.session();
     let ping_frame = session
         .borrow()

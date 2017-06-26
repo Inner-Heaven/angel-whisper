@@ -1,3 +1,7 @@
+
+
+use futures::{future, Poll};
+use futures::future::Future;
 use llsd::frames::Frame;
 use llsd::session::KeyPair;
 use llsd::session::client::Session;
@@ -6,19 +10,8 @@ use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
 
-use futures::future::Future;
-
-/// shortcut for futures that are returned by `Engine`.
-pub type EngineFuture = Box<Future<Item = Frame, Error = io::Error>>;
-
 /// Engine is the core of client.
 pub trait Engine {
-    /// Make a RPC call to remote server.
-    fn make_call(&self, req: Frame) -> Result<Frame, io::Error>;
-
-    /// Create Future for RPC call. Result of this function must be submited to reactor.
-    fn create_call(&self, req: Frame) -> EngineFuture;
-
     /// Return reference to session.
     fn session(&mut self) -> Rc<RefCell<Session>>;
 
@@ -29,22 +22,7 @@ pub trait Engine {
     fn our_long_term_keys(&self) -> KeyPair;
 
     /// Helper method to authenticate client with the server.
-    fn authenticate(&mut self) -> Result<(), io::Error> {
-        let session = self.session().clone();
-
-        let hello_frame = session.borrow().make_hello();
-        let hello_resp = (self.make_call(hello_frame))?;
-
-        let initiate_frame = session.borrow_mut().make_initiate(&hello_resp).unwrap();
-        let initiate_resp = (self.make_call(initiate_frame))?;
-
-        let ready_payload = session.borrow_mut().read_ready(&initiate_resp);
-        if let Ok(_is_ready) = ready_payload {
-            Ok(())
-        } else {
-            Err(io::Error::new(io::ErrorKind::Other, "wat"))
-        }
-    }
+    fn authenticate(&mut self) -> FutureHandshake;
 
     /// Create brand new session.
     fn generate_session(&self) -> Session {
@@ -52,110 +30,78 @@ pub trait Engine {
     }
 }
 
+pub struct FutureResponse(Box<Future<Item = Frame, Error = io::Error> + 'static>);
+pub struct FutureHandshake(Box<Future<Item = (), Error = io::Error> + 'static>);
+
+impl Future for FutureResponse {
+    type Item = Frame;
+    type Error = io::Error;
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.0.poll()
+    }
+}
+
+impl Future for FutureHandshake {
+    type Item = ();
+    type Error = io::Error;
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.0.poll()
+    }
+}
+
 /// Tokio backed implementation of client.
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
+    use super::{Engine, FutureHandshake, FutureResponse};
     use futures;
     use futures::Future;
+    use futures::IntoFuture;
     use llsd::frames::Frame;
     use llsd::session::KeyPair;
     use llsd::session::client::Session;
     use llsd::tokio::WhisperPipelinedProtocol;
-    use super::{EngineFuture, Engine};
     use sodiumoxide::crypto::box_::PublicKey;
     use std::cell::RefCell;
     use std::io;
     use std::net::SocketAddr;
     use std::rc::Rc;
-    use std::thread;
     use tokio_core::net::TcpStream;
-    use tokio_core::reactor::{Handle, Core};
+    use tokio_core::reactor::Handle;
     use tokio_proto::TcpClient;
     use tokio_proto::pipeline::ClientService;
     use tokio_service::Service;
 
 
-    type ShutdownSignal = futures::sync::oneshot::Sender<()>;
 
     /// Pipeline TCP client on top of tokio.
     pub struct TcpPipelineEngine {
-        _shutdown_channel: Option<ShutdownSignal>,
         handle: Handle,
-        inner: ClientService<TcpStream, WhisperPipelinedProtocol>,
+        inner: Rc<RefCell<ClientService<TcpStream, WhisperPipelinedProtocol>>>,
         long_term_keys: KeyPair,
         session: Option<Rc<RefCell<Session>>>,
         server_public_key: PublicKey,
     }
 
-    impl Service for TcpPipelineEngine {
-        type Request = Frame;
-        type Response = Frame;
-        type Error = io::Error;
-        type Future = EngineFuture;
-
-        fn call(&self, req: Frame) -> Box<Future<Item = Frame, Error = io::Error>> {
-            Box::new(self.inner.call(req))
-        }
-    }
 
     impl TcpPipelineEngine {
-        /// Create backend for client. This will give engine it's own reactor.
-        pub fn new(addr: &SocketAddr, long_term_keys: KeyPair, server_key: PublicKey) -> Self {
-            let (tx, rx) = futures::oneshot();
-            let (tx_shutdown, rx_shutdown) = futures::oneshot();
-
-            thread::spawn(move || {
-                              let mut core = Core::new().expect("Failed to create reactor");
-                              let response = tx.send(core.remote());
-                              response.expect("Failed to send handle.");
-                              let _done = core.run(rx_shutdown);
-                          });
-
-            let remote = rx.wait().expect("Failed to create new reactor");
-            let handle = remote.handle().expect("Failed to create new reactor");
-            TcpPipelineEngine::create(addr, Some(tx_shutdown), handle, long_term_keys, server_key)
-        }
         /// Create backend for the client powered by existing reactor.
-        pub fn with_handle(addr: &SocketAddr,
-                           handle: Handle,
-                           long_term_keys: KeyPair,
-                           server_key: PublicKey)
-                           -> Self {
-            TcpPipelineEngine::create(addr, None, handle, long_term_keys, server_key)
-        }
-
-        fn create(addr: &SocketAddr,
-                  shutdown_channel: Option<ShutdownSignal>,
-                  handle: Handle,
-                  long_term_keys: KeyPair,
-                  server_key: PublicKey)
-                  -> Self {
-            let connection_future = TcpClient::new(WhisperPipelinedProtocol).connect(addr, &handle);
-            let connection = connection_future
-                .wait()
-                .expect("Failed to connect to the server");
-            TcpPipelineEngine {
-                _shutdown_channel: shutdown_channel,
-                handle: handle,
-                inner: connection,
-                long_term_keys: long_term_keys,
-                server_public_key: server_key,
-                session: None,
-            }
-        }
-        
-        /// Execute given future on whatever reactor is assigned to this client.
-        pub fn execute(&self, future: EngineFuture) -> Result<Frame, io::Error> {
-                      let (tx, rx) = futures::oneshot();
-
-            let call = future.then(|resp| {
-                          let _ = tx.send(resp);
-                          Ok(())
-                      });
-
-            self.handle.spawn(call);
-
-            rx.wait().expect("Someone canceled future")
+        pub fn connect(addr: &SocketAddr,
+                       handle: Handle,
+                       long_term_keys: KeyPair,
+                       server_key: PublicKey)
+                       -> Box<Future<Item = Self, Error = io::Error>> {
+            let ret = TcpClient::new(WhisperPipelinedProtocol)
+                .connect(addr, &handle)
+                .map(move |connection| {
+                    TcpPipelineEngine {
+                        handle: handle.clone(),
+                        inner: Rc::new(RefCell::new(connection)),
+                        long_term_keys: long_term_keys,
+                        server_public_key: server_key,
+                        session: None,
+                    }
+                });
+            Box::new(ret)
         }
     }
 
@@ -173,38 +119,51 @@ pub mod tokio {
         }
 
         fn server_public_key(&self) -> PublicKey {
-            self.server_public_key
+            self.server_public_key.clone()
         }
 
         fn our_long_term_keys(&self) -> KeyPair {
             self.long_term_keys.clone()
         }
-        fn make_call(&self, req: Frame) -> Result<Frame, io::Error> {
-            let call = self.inner.call(req);
-            self.execute(Box::new(call))
-        }
+        fn authenticate(&mut self) -> FutureHandshake {
+            let service = self.inner.clone();
+            let session = self.session();
 
-        fn create_call(&self, req: Frame) -> Box<Future<Item = Frame, Error= io::Error>> {
-            Box::new(self.inner.call(req))
+            let hello_frame = session.borrow().make_hello();
+            let hello_request = service.borrow().call(hello_frame);
+
+            let initaite_request = hello_request.and_then(move |hello_response| {
+                let initiate_future = {
+                    let session_initiate = session.clone();
+                    let service_initiate = service.clone();
+                    let initiate = session_initiate
+                        .borrow_mut()
+                        .make_initiate(&hello_response)
+                        .unwrap();
+                    service_initiate.borrow().call(initiate)
+                };
+                initiate_future.map(move |frame| (session, service, frame))
+            });
+
+            let handshake = initaite_request.then(move |response| {
+                let (session, service, initiate_respose) = response.unwrap();
+                let ready = session.borrow_mut().read_ready(&initiate_respose);
+                if ready.is_ok() {
+                    futures::future::ok(())
+                } else {
+                    futures::future::err(io::Error::new(io::ErrorKind::Other, "handshake failed"))
+                }
+            });
+
+            FutureHandshake(Box::new(handshake))
         }
     }
     #[cfg(test)]
     mod test {
         use super::*;
 
-        use ::crypto::gen_keypair;
-
-        #[test]
-        fn without_handler_compiles() {
-            if false {
-                let pair = gen_keypair();
-                let (key, _) = gen_keypair();
-
-                let addr = "0.0.0.0:12345".parse().unwrap();
-
-                let _client = TcpPipelineEngine::new(&addr, pair, key);
-            }
-        }
+        use crypto::gen_keypair;
+        use tokio_core::reactor::Core;
 
         #[test]
         fn with_handler_compiles() {
@@ -215,7 +174,7 @@ pub mod tokio {
 
                 let addr = "0.0.0.0:12345".parse().unwrap();
 
-                let _client = TcpPipelineEngine::with_handle(&addr, core.handle(), pair, key);
+                let _client = TcpPipelineEngine::connect(&addr, core.handle(), pair, key);
             }
         }
     }

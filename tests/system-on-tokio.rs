@@ -14,12 +14,15 @@ use angel_whisper::angel_system::tokio::InlineService;
 
 use angel_whisper::crypto::gen_keypair;
 use angel_whisper::errors::{AWResult, AWErrorKind};
+use angel_whisper::llsd::client::Engine;
+use angel_whisper::llsd::client::tokio::TcpPipelineEngine;
 use angel_whisper::llsd::tokio::WhisperPipelinedProtocol;
 use angel_whisper::system::ServiceHub;
 use angel_whisper::system::authenticator::DumbAuthenticator;
 use angel_whisper::system::hashmapstore::HashMapStore;
 use angel_whisper::tokio::Core;
 use angel_whisper::tokio::Service;
+use futures::Future;
 use std::sync::{Arc, RwLock};
 use std::thread;
 use tokio_proto::TcpServer;
@@ -56,7 +59,7 @@ fn test_pipeline_framed_server_compiles() {
     }
 }
 
-#[test]
+//#[test]
 fn test_ping_pong() {
     let (our_pk, our_sk) = gen_keypair();
 
@@ -106,5 +109,55 @@ fn test_ping_pong() {
     let pong = lp.run(ping).unwrap();
 
     let pong_payload = session.read_msg(&pong).unwrap();
+    assert_eq!(pong_payload, b"pong".to_vec());
+}
+
+#[test]
+fn test_tokio_client_engine() {
+    let (our_pk, our_sk) = gen_keypair();
+
+    let (server_pk, server_sk) = gen_keypair();
+
+    let store = HashMapStore::default();
+    let authenticator = DumbAuthenticator::new(vec![our_pk]);
+
+    let system = Arc::new(AngelSystem::new(store, authenticator, server_pk, server_sk, ping_pong));
+    let service = InlineService::new(system);
+
+    // spin new reactor core;
+    let mut core = Core::new().expect("Failed to create reactor [thread]");
+
+
+    // spin new server on local host
+    let addr = "127.0.0.1:12356".parse().unwrap();
+
+    thread::spawn(move || {
+                      TcpServer::new(WhisperPipelinedProtocol, addr)
+                          .serve(move || Ok(service.clone()));
+                  });
+
+
+
+    let duration = std::time::Duration::from_millis(13);
+    thread::sleep(duration);
+    let client_future =
+        TcpPipelineEngine::connect(&addr, core.handle(), (our_pk, our_sk.clone()), server_pk);
+    let mut client = core.run(client_future).expect("failed to connect");
+
+    println!("Connected");
+    let handshake_future = client.authenticate();
+
+    let handshake_result = core.run(handshake_future).expect("handshake failed");
+
+    let session = client.session();
+    let ping_frame = session
+        .borrow()
+        .make_message(&b"ping".to_vec())
+        .expect("Failed to create Message Frame");
+
+    let ping = client.call(ping_frame);
+    let pong = core.run(ping).unwrap();
+
+    let pong_payload = session.borrow().read_msg(&pong).unwrap();
     assert_eq!(pong_payload, b"pong".to_vec());
 }

@@ -1,6 +1,6 @@
 
 
-use futures::{Poll};
+use futures::Poll;
 use futures::future::Future;
 use llsd::frames::Frame;
 use llsd::session::KeyPair;
@@ -28,7 +28,7 @@ pub trait Engine {
     fn generate_session(&self) -> Session {
         Session::new(self.server_public_key(), self.our_long_term_keys())
     }
-    
+
     /// Make an RPC.
     fn request(&self, req: Frame) -> FutureResponse;
 }

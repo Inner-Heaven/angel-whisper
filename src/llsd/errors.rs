@@ -1,5 +1,3 @@
-
-
 use blunder::Blunder;
 use std::convert::{From, Into};
 use std::error::Error;

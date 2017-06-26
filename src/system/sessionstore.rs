@@ -10,11 +10,8 @@ pub trait SessionStore: Clone + Send + Sync {
 
     /// Shortcut to lookup session from uuid in `&[u8]` representation
     fn find(&self, bytes: &[u8]) -> Option<Arc<RwLock<Session>>> {
-        if let Some(_id) = PublicKey::from_slice(bytes) {
-            self.find_by_pk(&_id)
-        } else {
-            None
-        }
+        let key = PublicKey::from_slice(bytes).expect("Malformed bytes were passed as PublicKey");
+        self.find_by_pk(&key)
     }
     /// Try to insert session in to the store. If session already exists in the
     /// store — return

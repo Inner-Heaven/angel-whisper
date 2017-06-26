@@ -1,14 +1,15 @@
 use byteorder::{BigEndian, ByteOrder};
-use bytes::{BytesMut, BufMut};
+use bytes::{BufMut, BytesMut};
 use frames::Frame;
 use llsd::errors::LlsdErrorKind;
 use std::io;
 use std::result::Result;
 use tokio_io::{AsyncRead, AsyncWrite};
-use tokio_io::codec::{Encoder, Decoder, Framed};
-use tokio_proto::pipeline::{ServerProto, ClientProto};
+use tokio_io::codec::{Decoder, Encoder, Framed};
+use tokio_proto::pipeline::{ClientProto, ServerProto};
 
-/// Tokio style codec for both client and server. It uses 4 bytes to prefix frame with length of the frame.
+/// Tokio style codec for both client and server. It uses 4 bytes to prefix
+/// frame with length of the frame.
 pub struct FrameCodec;
 
 impl Decoder for FrameCodec {
@@ -52,7 +53,8 @@ impl Encoder for FrameCodec {
     }
 }
 
-/// Tokio Protocol for both clients and servers. This is Pipeline version of it. Very default framed protocol from tokio.
+/// Tokio Protocol for both clients and servers. This is Pipeline version of
+/// it. Very default framed protocol from tokio.
 pub struct WhisperPipelinedProtocol;
 impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for WhisperPipelinedProtocol {
     type Request = Frame;

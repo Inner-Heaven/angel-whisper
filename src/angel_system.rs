@@ -1,9 +1,9 @@
-use errors::{AWResult, AWErrorKind};
+use errors::{AWErrorKind, AWResult};
 
 use llsd::frames::{Frame, FrameKind};
 use llsd::session::Sendable;
 use llsd::session::server::Session;
-use sodiumoxide::crypto::box_::{SecretKey, PublicKey};
+use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 use std::sync::{Arc, RwLock};
 use system::{Handler, ServiceHub};
 use system::authenticator::Authenticator;
@@ -141,16 +141,15 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
 }
 
 
-/*
- * System On Tokio
- */
+/* System On Tokio
+ * */
 
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
 
-    use super::{AngelSystem, Handler, SessionStore, Authenticator, AWErrorKind};
+    use super::{AWErrorKind, AngelSystem, Authenticator, Handler, SessionStore};
     use frames::Frame;
-    use futures::{future, Future, BoxFuture};
+    use futures::{BoxFuture, Future, future};
     use std::io;
     use std::sync::Arc;
     use tokio_service::Service;

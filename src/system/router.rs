@@ -2,7 +2,7 @@
 
 use super::{Handler, ServiceHub};
 use byteorder::{BigEndian, ByteOrder};
-use errors::{AWResult, AWErrorKind};
+use errors::{AWErrorKind, AWResult};
 use llsd::session::server::Session;
 
 use murmurhash64::murmur_hash64a as hash;
@@ -75,7 +75,7 @@ impl Handler for Router {
 #[cfg(test)]
 mod test {
     use super::*;
-    use byteorder::{WriteBytesExt, BigEndian};
+    use byteorder::{BigEndian, WriteBytesExt};
     use errors::AWResult;
     use llsd::session::server::Session;
 

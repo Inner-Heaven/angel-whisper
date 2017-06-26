@@ -2,10 +2,10 @@ extern crate angel_whisper;
 #[macro_use]
 extern crate blunder;
 
-use angel_whisper::{AngelSystem, ClientSession, ServerSession, Sendable};
+use angel_whisper::{AngelSystem, ClientSession, Sendable, ServerSession};
 
 use angel_whisper::crypto::gen_keypair;
-use angel_whisper::errors::{AWResult, AWErrorKind};
+use angel_whisper::errors::{AWErrorKind, AWResult};
 use angel_whisper::frames::FrameKind;
 use angel_whisper::system::ServiceHub;
 use angel_whisper::system::authenticator::DumbAuthenticator;

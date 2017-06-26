@@ -22,9 +22,14 @@ extern crate tokio_service;
 #[cfg(feature = "system-on-tokio")]
 extern crate tokio_core;
 
-/// Honestly I forgot what LLSD stands for. Something like Low-Level System Description. I remember only Low-Level part.
-/// The idea was to group all low level things that can be attributed to both client and server together, so it can be extracted into separate crate later.
-/// Main rule — nothing in LLSD should ever use anything from parent and sibling modules.
+/// Honestly I forgot what LLSD stands for. Something like Low-Level System
+/// Description.
+/// I remember only Low-Level part.
+/// The idea was to group all low level things that can be attributed to both
+/// client and server together,
+/// so it can be extracted into separate crate later.
+/// Main rule — nothing in LLSD should ever use anything from parent and
+/// sibling modules.
 pub mod llsd;
 pub use llsd::frames;
 pub use llsd::session::Sendable;
@@ -47,7 +52,7 @@ pub mod crypto {
 pub mod tokio {
     pub use futures::{Async, Future};
     pub use tokio_core::net::TcpStream;
-    pub use tokio_core::reactor::{Handle, Core};
+    pub use tokio_core::reactor::{Core, Handle};
     pub use tokio_proto::TcpClient;
     pub use tokio_proto::pipeline::{ClientProto, ClientService};
     pub use tokio_service::Service;

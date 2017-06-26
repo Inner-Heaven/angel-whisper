@@ -1,8 +1,8 @@
 
 
-use llsd::errors::{LlsdResult, LlsdErrorKind};
+use llsd::errors::{LlsdErrorKind, LlsdResult};
 use llsd::frames::{Frame, FrameKind};
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey, Nonce};
+use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
 
 /// Things that are required to build a client.
 pub mod client;
@@ -11,26 +11,33 @@ pub mod server;
 /// Just an alias...
 pub type KeyPair = (PublicKey, SecretKey);
 
-/// Array of null bytes used in Hello package. Needs to be bigger than Welcome frame to prevent
+/// Array of null bytes used in Hello package. Needs to be bigger than Welcome
+/// frame to prevent
 /// amplification attacks.
 pub static NULL_BYTES: [u8; 256] = [b'\x00'; 256];
 
-/// Session has three states. Each state means different thing on client and server. For example,
-/// on client Fresh state means that client has send Hello frame to server. On the server, this
-/// means server recieved Hello and replied with Welcome. In case Hello was rejected - server goes
+/// Session has three states. Each state means different thing on client and
+/// server. For example,
+/// on client Fresh state means that client has send Hello frame to server. On
+/// the server, this
+/// means server recieved Hello and replied with Welcome. In case Hello was
+/// rejected - server goes
 /// into Error state and session is ready to be securely erased by reaper.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SessionState {
     /// This state means that client have sent Hello frame.
     Fresh,
-    /// This state means that session is established and messages can be sent both ways.
+    /// This state means that session is established and messages can be sent
+    /// both ways.
     Ready,
-    /// This state means that session established, but can't be used at the time. Session with this
+    /// This state means that session established, but can't be used at the
+    /// time. Session with this
     /// state would be killed by reaper on next run.
     Error,
 }
 
-/// Helper method for both Client and Server Sessions. Implement required methods and get helper to generate message frames.
+/// Helper method for both Client and Server Sessions. Implement required
+/// methods and get helper to generate message frames.
 pub trait Sendable {
     /// Return short term public key of the sender side.
     fn id(&self) -> PublicKey;

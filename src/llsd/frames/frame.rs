@@ -1,7 +1,7 @@
-use bytes::{Bytes, BytesMut, BufMut};
+use bytes::{BufMut, Bytes, BytesMut};
 
-use llsd::errors::{LlsdResult, LlsdErrorKind};
-use nom::{rest, IResult};
+use llsd::errors::{LlsdErrorKind, LlsdResult};
+use nom::{IResult, rest};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey};
 
 /// Header size in bytes. Used to pre-allocate vector of correct size.
@@ -21,7 +21,8 @@ pub enum FrameKind {
     Ready,
     /// Generic message frame. Can be sent from either side.
     Message,
-    /// Termination frame. Usually used to indicate handshake error or session termination. Can be
+    /// Termination frame. Usually used to indicate handshake error or session
+    /// termination. Can be
     /// sent from either side.
     Termination,
 }
@@ -40,7 +41,8 @@ impl FrameKind {
             _ => None,
         }
     }
-    /// Alias to method above, but returns an error if there're more than one byte,
+    /// Alias to method above, but returns an error if there're more than one
+    /// byte,
     pub fn from_slice(kind: &[u8]) -> Option<FrameKind> {
         if kind.len() != 1 {
             return None;
@@ -49,8 +51,10 @@ impl FrameKind {
     }
 }
 
-/// Main unit of information passed from client to server. This thing doesn't care what payload it as long as Frame has correct header.
-/// This way you can used whatever you want as your internal message format — JSON, BSON, TSV, Protocol Buffers, etc.
+/// Main unit of information passed from client to server. This thing doesn't
+/// care what payload it as long as Frame has correct header.
+/// This way you can used whatever you want as your internal message format —
+/// JSON, BSON, TSV, Protocol Buffers, etc.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Frame {
     /// Session identificator. 32 bytes
@@ -63,19 +67,22 @@ pub struct Frame {
     pub payload: Vec<u8>,
 }
 
-/// Main unit of information passed from client to server. This thing doesn't care what payload it as long as Frame has correct header.
-/// This way you can used whatever you want as your internal message format — JSON, BSON, TSV, Protocol Buffers, etc.
+/// Main unit of information passed from client to server. This thing doesn't
+/// care what payload it as long as Frame has correct header.
+/// This way you can used whatever you want as your internal message format —
+/// JSON, BSON, TSV, Protocol Buffers, etc.
 impl Frame {
     /// Calculates length of a frame;
     pub fn length(&self) -> usize {
         HEADER_SIZE + self.payload.len()
     }
 
-    /// Writes packed bytes to supplied buffer. This doesn't include legnth of the message.
+    /// Writes packed bytes to supplied buffer. This doesn't include legnth of
+    /// the message.
     pub fn pack_to_buf(&self, buf: &mut BytesMut) {
         buf.reserve(self.length());
         // Unwrap here makes sense, amirite?
-        //kind.write_u8(self.kind as u8).unwrap();
+        // kind.write_u8(self.kind as u8).unwrap();
         buf.extend_from_slice(&self.id.0);
         buf.extend_from_slice(&self.nonce.0);
         buf.put_u8(self.kind as u8);

@@ -9,11 +9,11 @@ extern crate tokio_core;
 extern crate tokio_service;
 extern crate futures;
 
-use angel_whisper::{AngelSystem, ClientSession, ServerSession, Sendable};
+use angel_whisper::{AngelSystem, ClientSession, Sendable, ServerSession};
 use angel_whisper::angel_system::tokio::InlineService;
 
 use angel_whisper::crypto::gen_keypair;
-use angel_whisper::errors::{AWResult, AWErrorKind};
+use angel_whisper::errors::{AWErrorKind, AWResult};
 use angel_whisper::llsd::client::Engine;
 use angel_whisper::llsd::client::tokio::TcpPipelineEngine;
 use angel_whisper::llsd::tokio::WhisperPipelinedProtocol;
@@ -50,7 +50,8 @@ fn test_pipeline_framed_server_compiles() {
 
     let system = Arc::new(AngelSystem::new(store, authenticator, server_pk, server_sk, ping_pong));
 
-    // Test we can use Framed from tokio-core for (simple) streaming pipeline protocols
+    // Test we can use Framed from tokio-core for (simple) streaming pipeline
+    // protocols
     // Don't want this to run, only compile
     if false {
         let service = InlineService::new(system);
@@ -59,7 +60,7 @@ fn test_pipeline_framed_server_compiles() {
     }
 }
 
-//#[test]
+// [test]
 fn test_ping_pong() {
     let (our_pk, our_sk) = gen_keypair();
 

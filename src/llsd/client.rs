@@ -1,6 +1,6 @@
 
 
-use futures::{future, Poll};
+use futures::{Poll, future};
 use futures::future::Future;
 use llsd::frames::Frame;
 use llsd::session::KeyPair;
@@ -30,7 +30,9 @@ pub trait Engine {
     }
 }
 
+/// Future reprensenting the result of RPC call.
 pub struct FutureResponse(Box<Future<Item = Frame, Error = io::Error> + 'static>);
+/// Future representing the result of handshake.
 pub struct FutureHandshake(Box<Future<Item = (), Error = io::Error> + 'static>);
 
 impl Future for FutureResponse {
@@ -135,25 +137,30 @@ pub mod tokio {
             let initaite_request = hello_request.and_then(move |hello_response| {
                 let initiate_future = {
                     let session_initiate = session.clone();
-                    let service_initiate = service.clone();
+                    let service_marker = service.clone();
+                    let service_initiate = service_marker.borrow();
                     let initiate = session_initiate
                         .borrow_mut()
                         .make_initiate(&hello_response)
                         .unwrap();
-                    service_initiate.borrow().call(initiate)
+                    service_initiate.call(initiate)
                 };
                 initiate_future.map(move |frame| (session, service, frame))
             });
 
-            let handshake = initaite_request.then(move |response| {
-                let (session, service, initiate_respose) = response.unwrap();
-                let ready = session.borrow_mut().read_ready(&initiate_respose);
-                if ready.is_ok() {
-                    futures::future::ok(())
-                } else {
-                    futures::future::err(io::Error::new(io::ErrorKind::Other, "handshake failed"))
-                }
-            });
+            let handshake = initaite_request
+                .then(move |result| if let Ok((session, _service, initiate_respose)) = result {
+                          let ready = session.borrow_mut().read_ready(&initiate_respose);
+                          if ready.is_ok() {
+                              futures::future::ok(())
+                          } else {
+                              futures::future::err(io::Error::new(io::ErrorKind::Other,
+                                                                  "handshake failed"))
+                          }
+                      } else {
+                          futures::future::err(io::Error::new(io::ErrorKind::Other,
+                                                              "handshake failed"))
+                      });
 
             FutureHandshake(Box::new(handshake))
         }

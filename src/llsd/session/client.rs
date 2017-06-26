@@ -1,12 +1,12 @@
 
 
-use super::{SessionState, KeyPair, NULL_BYTES, Sendable};
+use super::{KeyPair, NULL_BYTES, Sendable, SessionState};
 use chrono::DateTime;
 use chrono::offset::Utc;
-use llsd::errors::{LlsdResult, LlsdErrorKind};
+use llsd::errors::{LlsdErrorKind, LlsdResult};
 
 use llsd::frames::{Frame, FrameKind};
-use sodiumoxide::crypto::box_::{PublicKey, seal, open, gen_keypair, gen_nonce, Nonce};
+use sodiumoxide::crypto::box_::{Nonce, PublicKey, gen_keypair, gen_nonce, open, seal};
 
 const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
 
@@ -23,7 +23,8 @@ pub struct Session {
 }
 
 impl Session {
-    /// Create new client session. Requires client long-term key-pair and server long-term public
+    /// Create new client session. Requires client long-term key-pair and
+    /// server long-term public
     /// key.
     pub fn new(server_lt_pk: PublicKey, our_pair: KeyPair) -> Session {
         Session {
@@ -46,16 +47,18 @@ impl Session {
             payload: payload,
         }
     }
-    /// Helper to make am Initiate frame, a reply to Welcome frame. Client workflow.
+    /// Helper to make am Initiate frame, a reply to Welcome frame. Client
+    /// workflow.
     pub fn make_initiate(&mut self, welcome: &Frame) -> LlsdResult<Frame> {
         if self.state != SessionState::Fresh || welcome.kind != FrameKind::Welcome {
             fail!(LlsdErrorKind::InvalidState)
         }
         // Try to obtain server short public key from the box.
         if let Ok(server_pk) = open(&welcome.payload,
-                                    &welcome.nonce,
-                                    &self.server_lt_pk,
-                                    &self.st.1) {
+                                 &welcome.nonce,
+                                 &self.server_lt_pk,
+                                 &self.st.1)
+        {
             if let Some(key) = PublicKey::from_slice(&server_pk) {
                 self.server_pk = Some(key);
                 let mut initiate_box = Vec::with_capacity(104);
@@ -84,7 +87,8 @@ impl Session {
         }
     }
 
-    /// Verify that reply to initiate frame is correct ready frame. Changes session state if so.
+    /// Verify that reply to initiate frame is correct ready frame. Changes
+    /// session state if so.
     pub fn read_ready(&mut self, ready: &Frame) -> LlsdResult<()> {
         if self.state != SessionState::Fresh || ready.kind != FrameKind::Ready {
             fail!(LlsdErrorKind::InvalidState)
@@ -133,9 +137,10 @@ impl Sendable for Session {
 
     fn read_msg(&self, frame: &Frame) -> Option<Vec<u8>> {
         if let Ok(msg) = open(&frame.payload,
-                              &frame.nonce,
-                              &self.server_pk.expect("Shit is on fire yo!"),
-                              &self.st.1) {
+                           &frame.nonce,
+                           &self.server_pk.expect("Shit is on fire yo!"),
+                           &self.st.1)
+        {
             Some(msg)
         } else {
             None

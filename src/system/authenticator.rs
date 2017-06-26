@@ -1,7 +1,8 @@
 use sodiumoxide::crypto::box_::PublicKey;
 use std::sync::Arc;
 
-/// Used to authenticate user by his long term public key. This way its easy to test.
+/// Used to authenticate user by his long term public key. This way its easy to
+/// test.
 pub trait Authenticator: Clone + Send + Sync {
     /// Well...
     fn is_valid(&self, key: &PublicKey) -> bool;

@@ -12,6 +12,8 @@ pub mod hashmapstore;
 pub mod sessionstore;
 
 pub type ServiceHub = Arc<RwLock<ShareMap>>;
+pub type ShareSession = Arc<RwLock<Session>>;
+pub type Response = AWResult<Vec<u8>>;
 
 pub trait Handler: Send + Sync + 'static {
     /// Handle incoming message.
@@ -24,8 +26,10 @@ pub trait Handler: Send + Sync + 'static {
 }
 
 impl<F> Handler for F
-where F: Send + Sync + 'static + Fn(ServiceHub, Arc<RwLock<Session>>, Vec<u8>) -> AWResult<Vec<u8>> {
-    fn handle(&self, services: ServiceHub, session: Arc<RwLock<Session>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
+where
+    F: Send + Sync + 'static + Fn(ServiceHub, ShareSession, Vec<u8>) -> Response,
+{
+    fn handle(&self, services: ServiceHub, session: ShareSession, msg: Vec<u8>) -> Response {
         (*self)(services, session, msg)
     }
 }

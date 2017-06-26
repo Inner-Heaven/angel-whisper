@@ -26,10 +26,11 @@ impl SessionStore for HashMapStore {
     fn insert(&self, session: Session) -> Option<()> {
         // Avoid write locks on map as hard as we can
         if session.is_valid() &&
-           !self.store
-                .read()
-                .expect(POISONED_LOCK_MSG)
-                .contains_key(&session.id()) {
+            !self.store
+                 .read()
+                 .expect(POISONED_LOCK_MSG)
+                 .contains_key(&session.id())
+        {
             self.store
                 .write()
                 .expect(POISONED_LOCK_MSG)

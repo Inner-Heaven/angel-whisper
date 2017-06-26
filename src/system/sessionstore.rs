@@ -16,7 +16,8 @@ pub trait SessionStore: Clone + Send + Sync {
             None
         }
     }
-    /// Try to insert session in to the store. If session already exists in the store — return
+    /// Try to insert session in to the store. If session already exists in the
+    /// store — return
     /// None, else return `()`
     fn insert(&self, session: Session) -> Option<()>;
     fn destroy(&self, key: &PublicKey);

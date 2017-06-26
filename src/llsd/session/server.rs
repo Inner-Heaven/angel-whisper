@@ -1,12 +1,12 @@
 
 
-use super::{SessionState, Sendable};
+use super::{Sendable, SessionState};
 use chrono::{DateTime, Duration};
 use chrono::offset::Utc;
-use llsd::errors::{LlsdResult, LlsdErrorKind};
+use llsd::errors::{LlsdErrorKind, LlsdResult};
 
 use llsd::frames::{Frame, FrameKind};
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey, seal, open, gen_keypair, gen_nonce, Nonce};
+use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey, gen_keypair, gen_nonce, open, seal};
 
 const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
 
@@ -14,7 +14,8 @@ const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
 #[derive(Debug, Clone, PartialEq)]
 /// Server side session.
 pub struct Session {
-    /// What time session should be considered exprired? Treat session as short-lived entity.
+    /// What time session should be considered exprired? Treat session as
+    /// short-lived entity.
     /// There is no reason not to start a new sesion every hour.
     expire_at: DateTime<Utc>,
     created_at: DateTime<Utc>,
@@ -27,7 +28,8 @@ pub struct Session {
 }
 
 impl Session {
-    /// Create new server side session. Only requires client short-term public key. Server
+    /// Create new server side session. Only requires client short-term public
+    /// key. Server
     /// long-term pair stored in session manager or else where.
     pub fn new(client_pk: PublicKey) -> Session {
         Session {
@@ -51,7 +53,8 @@ impl Session {
         }
         // Verify content of the box
         if let Ok(payload) = open(&hello.payload, &hello.nonce, &hello.id, our_sk) {
-            // We're not going to verify that box content itself, but will verify it's length since
+            // We're not going to verify that box content itself, but will verify it's
+            // length since
             // that is what matters the most.
             if payload.len() != 256 {
                 self.state = SessionState::Error;
@@ -73,14 +76,16 @@ impl Session {
             fail!(LlsdErrorKind::HandshakeFailed);
         }
     }
-    /// A helper to extract client's permamanet public key from initiate frame in order to
+    /// A helper to extract client's permamanet public key from initiate frame
+    /// in order to
     /// authenticate client. Authentication happens in another place.
     pub fn validate_initiate(&self, initiate: &Frame) -> Option<PublicKey> {
         if let Ok(initiate_payload) =
             open(&initiate.payload,
                  &initiate.nonce,
                  &self.client_pk,
-                 &self.st.1) {
+                 &self.st.1)
+        {
             // TODO: change to != with proper size
             if initiate_payload.len() < 60 {
                 return None;
@@ -103,7 +108,8 @@ impl Session {
         None
     }
 
-    /// Helper to make a Ready frame, a reply to Initiate frame. Server workflow.
+    /// Helper to make a Ready frame, a reply to Initiate frame. Server
+    /// workflow.
     pub fn make_ready(&mut self, initiate: &Frame, client_lt_pk: &PublicKey) -> LlsdResult<Frame> {
         if self.state != SessionState::Fresh || initiate.kind != FrameKind::Initiate {
             fail!(LlsdErrorKind::InvalidState)

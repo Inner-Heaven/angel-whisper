@@ -24,7 +24,8 @@ impl Error for AWErrorKind {
             AWErrorKind::CannotDecrypt => "Secured payload of the frame cannot be decrypted",
             AWErrorKind::NotImplemented => "Action not implemented",
             AWErrorKind::IncorrectState => {
-                "Received frame cannot be applies to sesion. For example, sending hello frame when session is in READY state"
+                "Received frame cannot be applies to sesion. For example, sending hello frame when \
+                 session is in READY state"
             }
             AWErrorKind::ServerFault => "Shit is on fire yo",
             AWErrorKind::HandshakeFailed(_) => "Error during handshake. Wrong key for example",

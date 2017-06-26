@@ -1,7 +1,7 @@
 
 
 use blunder::Blunder;
-use std::convert::{Into, From};
+use std::convert::{From, Into};
 use std::error::Error;
 use std::fmt;
 use std::io;
@@ -16,15 +16,20 @@ pub type LlsdResult<T> = Result<T, LlsdError>;
 #[derive(Debug, PartialEq, Clone)]
 /// Types of error that can be returned within this error.
 pub enum LlsdErrorKind {
-    /// Error during handshake stage. Probably means server doesn't recognize the client
+    /// Error during handshake stage. Probably means server doesn't recognize
+    /// the client
     HandshakeFailed,
-    /// Payload is too big. You don't want make server or client do decryption of your movie collection in request.
+    /// Payload is too big. You don't want make server or client do decryption
+    /// of your movie collection in request.
     MessageTooBig,
     /// Read it as decryption failed.
     BadFrame,
-    /// Stale session. Remember, each session expiry regardless of activity in predefined intervals. Client should handle this without comsumer notice.
+    /// Stale session. Remember, each session expiry regardless of activity in
+    /// predefined intervals.
+    /// Client should handle this without comsumer notice.
     SessionExpired,
-    /// Handshake frames have to be sent in specific order. Messages can be sent only when session is Ready.
+    /// Handshake frames have to be sent in specific order. Messages can be
+    /// sent only when session is Ready.
     InvalidState,
     /// Missing some bytes.
     IncompleteFrame,

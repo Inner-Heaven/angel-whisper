@@ -22,7 +22,6 @@ use angel_whisper::system::authenticator::DumbAuthenticator;
 use angel_whisper::system::hashmapstore::HashMapStore;
 use angel_whisper::tokio::Core;
 use angel_whisper::tokio::Service;
-use futures::Future;
 use std::sync::{Arc, RwLock};
 use std::thread;
 use tokio_proto::TcpServer;
@@ -60,7 +59,7 @@ fn test_pipeline_framed_server_compiles() {
     }
 }
 
-// [test]
+#[test]
 fn test_ping_pong() {
     let (our_pk, our_sk) = gen_keypair();
 

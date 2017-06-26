@@ -79,7 +79,7 @@ pub mod tokio {
 
     /// Pipeline TCP client on top of tokio.
     pub struct TcpPipelineEngine {
-        handle: Handle,
+        _handle: Handle,
         inner: Rc<RefCell<ClientService<TcpStream, WhisperPipelinedProtocol>>>,
         long_term_keys: KeyPair,
         session: Option<Rc<RefCell<Session>>>,
@@ -98,7 +98,7 @@ pub mod tokio {
                 .connect(addr, &handle)
                 .map(move |connection| {
                     TcpPipelineEngine {
-                        handle: handle.clone(),
+                        _handle: handle.clone(),
                         inner: Rc::new(RefCell::new(connection)),
                         long_term_keys: long_term_keys,
                         server_public_key: server_key,

@@ -42,15 +42,13 @@ impl SessionStore for HashMapStore {
     }
 
     fn find_by_pk(&self, key: &PublicKey) -> Option<Arc<RwLock<Session>>> {
-        if let Ok(store) = self.store.read() {
-            if let Some(session_lock) = store.get(key) {
-                Some(session_lock.clone())
-            } else {
-                None
-            }
+        let store = self.store.read().expect(POISONED_LOCK_MSG);
+        if let Some(session_lock) = store.get(key) {
+            Some(session_lock.clone())
         } else {
-            panic!(POISONED_LOCK_MSG);
+            None
         }
+
     }
 
     fn destroy(&self, key: &PublicKey) {

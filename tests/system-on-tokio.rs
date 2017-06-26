@@ -150,13 +150,14 @@ fn test_tokio_client_engine() {
 
     let handshake_result = core.run(handshake_future).expect("handshake failed");
 
+    assert_eq!((), handshake_result);
     let session = client.session();
     let ping_frame = session
         .borrow()
         .make_message(&b"ping".to_vec())
         .expect("Failed to create Message Frame");
 
-    let ping = client.call(ping_frame);
+    let ping = client.request(ping_frame);
     let pong = core.run(ping).unwrap();
 
     let pong_payload = session.borrow().read_msg(&pong).unwrap();

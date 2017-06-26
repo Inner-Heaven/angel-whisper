@@ -1,6 +1,6 @@
 
 
-use futures::{Poll, future};
+use futures::{Poll};
 use futures::future::Future;
 use llsd::frames::Frame;
 use llsd::session::KeyPair;
@@ -28,6 +28,9 @@ pub trait Engine {
     fn generate_session(&self) -> Session {
         Session::new(self.server_public_key(), self.our_long_term_keys())
     }
+    
+    /// Make an RPC.
+    fn request(&self, req: Frame) -> FutureResponse;
 }
 
 /// Future reprensenting the result of RPC call.
@@ -57,7 +60,6 @@ pub mod tokio {
     use super::{Engine, FutureHandshake, FutureResponse};
     use futures;
     use futures::Future;
-    use futures::IntoFuture;
     use llsd::frames::Frame;
     use llsd::session::KeyPair;
     use llsd::session::client::Session;
@@ -163,6 +165,13 @@ pub mod tokio {
                       });
 
             FutureHandshake(Box::new(handshake))
+        }
+
+        fn request(&self, req: Frame) -> FutureResponse {
+            let service = self.inner.clone();
+            let f = service.borrow().call(req);
+
+            FutureResponse(Box::new(f))
         }
     }
     #[cfg(test)]

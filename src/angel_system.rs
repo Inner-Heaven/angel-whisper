@@ -176,7 +176,6 @@ pub mod tokio {
         type Future = BoxFuture<Self::Response, Self::Error>;
 
         fn call(&self, req: Self::Request) -> Self::Future {
-            println!("[server] Request: {:?}", req);
             match self.system.process(req) {
                 Ok(res) => future::ok(res).boxed(),
                 Err(err) => {

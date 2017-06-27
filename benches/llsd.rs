@@ -1,12 +1,10 @@
 #![feature(test)]
 extern crate angel_whisper;
-#[macro_use]
-extern crate blunder;
 
 use angel_whisper::{AngelSystem, ClientSession, Sendable, ServerSession};
 
 use angel_whisper::crypto::gen_keypair;
-use angel_whisper::errors::{AWErrorKind, AWResult};
+use angel_whisper::errors::{AWError, AWResult};
 use angel_whisper::system::ServiceHub;
 use angel_whisper::system::authenticator::DumbAuthenticator;
 use angel_whisper::system::hashmapstore::HashMapStore;
@@ -21,7 +19,7 @@ fn ping_pong(_: ServiceHub, _: Arc<RwLock<ServerSession>>, msg: Vec<u8>) -> AWRe
     if msg == b"ping".to_vec() {
         Ok(b"pong".to_vec())
     } else {
-        fail!(AWErrorKind::BadFrame);
+        Err(AWError::NotImplemented)
     }
 }
 

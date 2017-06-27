@@ -31,10 +31,9 @@ impl Decoder for FrameCodec {
             Ok(frame) => Ok(Some(frame)),
             Err(e) => {
                 match e {
-                    LlsdError::IncompleteFrame  => Ok(None),
-                    _                           => Err(io::Error::new(io::ErrorKind::Other, "TODO CHANGE ME"))
+                    LlsdError::IncompleteFrame => Ok(None),
+                    _ => Err(io::Error::new(io::ErrorKind::Other, "TODO CHANGE ME")),
                 }
-
             }
         }
     }

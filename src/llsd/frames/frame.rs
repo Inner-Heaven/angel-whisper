@@ -157,7 +157,7 @@ mod test {
             LlsdError::IncompleteFrame => assert!(true),
             _ => panic!("WRONG ERROR KIND"),
         }
-}
+    }
 
     fn make_frame() -> Frame {
         let (pk, _) = gen_keypair();

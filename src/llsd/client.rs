@@ -19,7 +19,7 @@ pub enum ConnectionState {
     /// Doesn't have session or session is expired.
     NotReady,
 }
-/// Engine is the core of client. TODO: Make it take anything that can be packed into frame, so consumer doesn't have to use session stucture at all.
+/// Engine is the core of client. See module level documentation.
 pub trait Engine {
     /// Get state of the current connection.
     fn connection_state(&self) -> ConnectionState;

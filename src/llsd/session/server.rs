@@ -79,7 +79,7 @@ impl Session {
     /// A helper to extract client's permamanet public key from initiate frame
     /// in order to
     /// authenticate client. Authentication happens in another place.
-    pub fn validate_initiate(&self, initiate: &Frame) -> Option<PublicKey> {
+    pub fn validate_initiate(&self, initiate: &Frame) -> LlsdResult<PublicKey> {
         if let Ok(initiate_payload) =
             open(&initiate.payload,
                  &initiate.nonce,
@@ -88,10 +88,9 @@ impl Session {
         {
             // TODO: change to != with proper size
             if initiate_payload.len() < 60 {
-                return None;
+                return Err(LlsdError::InvalidInitiateFrame);
             }
             // unwrapping here because they only panic when input is shorter than needed.
-            // TODO: slice that bitch properly
             let pk = PublicKey::from_slice(&initiate_payload[0..32])
                 .expect("Failed to slice pk from payload");
             let v_nonce = Nonce::from_slice(&initiate_payload[32..56])
@@ -101,11 +100,11 @@ impl Session {
             if let Ok(vouch_payload) = open(v_box, &v_nonce, &pk, &self.st.1) {
                 let v_pk = PublicKey::from_slice(&vouch_payload).expect("Wrong Size Key!!!");
                 if vouch_payload.len() == 32 || v_pk == self.client_pk {
-                    return Some(pk);
+                    return Ok(pk);
                 }
             }
         }
-        None
+        Err(LlsdError::InvalidInitiateFrame)
     }
 
     /// Helper to make a Ready frame, a reply to Initiate frame. Server

@@ -18,13 +18,14 @@ quick_error! {
         InvalidReadyFrame {
             description("Server sent invalid payload for Ready frame.")
         }
-        DecryptionFailed {}
         InvalidHelloFrame {
             description("Client sent invalid payload for Hello frame.")
         }
+        DecryptionFailed {}
         InvalidWelcomeFrame {}
-        InvalidSessionState {}
+        InvalidInitiateFrame {}
         IncompleteFrame {}
+        InvalidSessionState {}
         BadFrame {}
         ExpiredSession {}
     }

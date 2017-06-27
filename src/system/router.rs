@@ -2,7 +2,7 @@
 
 use super::{Handler, ServiceHub};
 use byteorder::{BigEndian, ByteOrder};
-use errors::{AWErrorKind, AWResult};
+use errors::{AWError, AWResult};
 use llsd::session::server::Session;
 
 use murmurhash64::murmur_hash64a as hash;
@@ -60,14 +60,14 @@ impl Handler for Router {
               msg: Vec<u8>)
               -> AWResult<Vec<u8>> {
         if msg.len() < 8 {
-            fail!(AWErrorKind::BadFrame);
+            return Err(AWError::InvalidRoute);
         }
         let route = BigEndian::read_u64(&msg);
         match self.store
                   .read()
                   .expect(POISONED_LOCK_MSG)
                   .get(&route.into()) {
-            None => fail!(AWErrorKind::BadFrame),
+            None => Err(AWError::NotImplemented),
             Some(handler) => handler.handle(services, session, msg),
         }
     }

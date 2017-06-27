@@ -1,5 +1,3 @@
-#[macro_use]
-extern crate blunder;
 extern crate sodiumoxide;
 extern crate uuid;
 extern crate chrono;
@@ -30,7 +28,7 @@ extern crate tokio_core;
 /// The idea was to group all low level things that can be attributed to both
 /// client and server together,
 /// so it can be extracted into separate crate later.
-/// Main rule — nothing in LLSD should ever use anything from parent and
+/// Main rule — nothing in LLSD should ever use anything from parent andn
 /// sibling modules.
 pub mod llsd;
 pub use llsd::frames;

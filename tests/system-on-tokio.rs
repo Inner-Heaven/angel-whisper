@@ -1,8 +1,6 @@
 #[cfg(feature = "system-on-tokio")]
 
 extern crate angel_whisper;
-#[macro_use]
-extern crate blunder;
 extern crate tokio_proto;
 extern crate tokio_io;
 extern crate tokio_core;
@@ -13,7 +11,7 @@ use angel_whisper::{AngelSystem, ClientSession, Sendable, ServerSession};
 use angel_whisper::angel_system::tokio::InlineService;
 
 use angel_whisper::crypto::gen_keypair;
-use angel_whisper::errors::{AWErrorKind, AWResult};
+use angel_whisper::errors::{AWError, AWResult};
 use angel_whisper::llsd::client::Engine;
 use angel_whisper::llsd::client::tokio::TcpPipelineEngine;
 use angel_whisper::llsd::tokio::WhisperPipelinedProtocol;
@@ -34,7 +32,7 @@ fn ping_pong(_: ServiceHub, _: Arc<RwLock<ServerSession>>, msg: Vec<u8>) -> AWRe
     if msg == b"ping".to_vec() {
         Ok(b"pong".to_vec())
     } else {
-        fail!(AWErrorKind::BadFrame);
+        Err(AWError::NotImplemented)
     }
 }
 

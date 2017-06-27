@@ -1,5 +1,6 @@
-use errors::{AWErrorKind, AWResult};
+use errors::{AWError, AWResult};
 
+use llsd::errors::LlsdError;
 use llsd::frames::{Frame, FrameKind};
 use llsd::session::Sendable;
 use llsd::session::server::Session;
@@ -55,58 +56,55 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
             FrameKind::Hello => self.process_hello(&req),
             FrameKind::Initiate => self.process_initiate(&req),
             FrameKind::Message => self.process_message(&req),
-            _ => unimplemented!(),
+            _ => unreachable!(),
         }
     }
 
     fn process_hello(&self, frame: &Frame) -> AWResult<Frame> {
         // Verify it's a new session
         if self.sessions.find_by_pk(&frame.id).is_some() {
-            fail!(AWErrorKind::IncorrectState);
+            let llsd_error = LlsdError::InvalidSessionState;
+            return Err(llsd_error.into());
         }
         let session = Session::new(frame.id);
 
         // If inserting session failed - bail out early.
         if self.sessions.insert(session).is_none() {
-            fail!(AWErrorKind::ServerFault);
+            return Err(AWError::ServerFault);
         }
 
         if let Some(session_lock) = self.sessions.find_by_pk(&frame.id) {
             let session_guard = session_lock.write();
             if let Ok(mut session) = session_guard {
-                match session.make_welcome(frame, &self.secret_key) {
-                    Ok(frame) => return Ok(frame),
-                    Err(e) => fail!(AWErrorKind::HandshakeFailed(Some(e))),
-                }
+                let welcome = try!(session.make_welcome(frame, &self.secret_key));
+                return Ok(welcome);
             }
         } else {
-            fail!(AWErrorKind::HandshakeFailed(None))
+            return Err(AWError::SessionNotFound);
         }
-        fail!(AWErrorKind::ServerFault);
+        Err(AWError::ServerFault)
     }
 
     // TODO: Rewrite this madness
     fn process_initiate(&self, frame: &Frame) -> AWResult<Frame> {
         match self.sessions.find_by_pk(&frame.id) {
-            None => fail!(AWErrorKind::IncorrectState),
+            None => return Err(LlsdError::InvalidSessionState.into()),
             Some(session_lock) => {
                 let session_guard = session_lock.write();
                 if let Ok(mut session) = session_guard {
                     match session.validate_initiate(frame) {
-                        None => fail!(AWErrorKind::HandshakeFailed(None)),
-                        Some(key) => {
+                        Err(err) => Err(err.into()),
+                        Ok(key) => {
                             if !self.authenticator.is_valid(&key) {
-                                fail!(AWErrorKind::HandshakeFailed(None));
+                                return Err(AWError::SessionNotFound);
                             }
-                            match session.make_ready(frame, &key) {
-                                Ok(res) => Ok(res),
-                                Err(err) => fail!(AWErrorKind::HandshakeFailed(Some(err))),
-                            }
+                            let ready_frame = try!(session.make_ready(frame, &key));
+                            Ok(ready_frame)
                         }
                     }
                 } else {
                     // Failed to aquire write lock for a session.
-                    fail!(AWErrorKind::ServerFault);
+                    return Err(AWError::ServerFault);
                 }
             }
         }
@@ -114,16 +112,16 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
 
     fn process_message(&self, frame: &Frame) -> AWResult<Frame> {
         let session_lock = match self.sessions.find_by_pk(&frame.id) {
-            None => fail!(AWErrorKind::IncorrectState),
+            None => return Err(LlsdError::InvalidSessionState.into()),
             Some(session_lock) => session_lock,
         };
         let req = {
             let session = match session_lock.read() {
-                Err(_) => fail!(AWErrorKind::ServerFault),
+                Err(_) => return Err(AWError::ServerFault),
                 Ok(session) => session,
             };
             match session.read_msg(frame) {
-                None => fail!(AWErrorKind::CannotDecrypt),
+                None => return Err(LlsdError::DecryptionFailed.into()),
                 Some(req) => req.to_vec(),
             }
         };
@@ -131,12 +129,12 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
         let res = try!(self.handler
                            .handle(self.services.clone(), session_lock.clone(), req.to_vec()));
         let session = match session_lock.read() {
-            Err(_) => fail!(AWErrorKind::ServerFault),
+            Err(_) => return Err(AWError::ServerFault),
             Ok(session) => session,
         };
         session
             .make_message(&res)
-            .map_err(|_| AWErrorKind::BadFrame.into())
+            .map_err(|e| e.into()) 
     }
 }
 
@@ -147,7 +145,7 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
 #[cfg(feature = "system-on-tokio")]
 pub mod tokio {
 
-    use super::{AWErrorKind, AngelSystem, Authenticator, Handler, SessionStore};
+    use super::{AngelSystem, Authenticator, Handler, SessionStore};
     use frames::Frame;
     use futures::{BoxFuture, Future, future};
     use std::io;
@@ -178,14 +176,7 @@ pub mod tokio {
         fn call(&self, req: Self::Request) -> Self::Future {
             match self.system.process(req) {
                 Ok(res) => future::ok(res).boxed(),
-                Err(err) => {
-                    match *err {
-                        AWErrorKind::ServerFault => {
-                            future::err(io::Error::new(io::ErrorKind::Other, err)).boxed()
-                        }
-                        _ => unimplemented!(),
-                    }
-                }
+                Err(err) => future::err(io::Error::new(io::ErrorKind::Other, err)).boxed()
             }
         }
     }

@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 pub type AWResult<T> = Result<T, AWError>;
 pub type AWError = Blunder<AWErrorKind>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum AWErrorKind {
     BadFrame,
     IncorrectState,

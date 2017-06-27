@@ -3,7 +3,7 @@
 use super::{KeyPair, NULL_BYTES, Sendable, SessionState};
 use chrono::{DateTime, Duration};
 use chrono::offset::Utc;
-use llsd::errors::{LlsdErrorKind, LlsdResult};
+use llsd::errors::{LlsdResult, LlsdError};
 
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, gen_keypair, gen_nonce, open, seal};
@@ -53,7 +53,7 @@ impl Session {
     /// workflow.
     pub fn make_initiate(&mut self, welcome: &Frame) -> LlsdResult<Frame> {
         if self.state != SessionState::Fresh || welcome.kind != FrameKind::Welcome {
-            fail!(LlsdErrorKind::InvalidState)
+            return Err(LlsdError::InvalidSessionState);
         }
         // Try to obtain server short public key from the box.
         if let Ok(server_pk) = open(&welcome.payload,
@@ -81,11 +81,12 @@ impl Session {
                 Ok(frame)
             } else {
                 self.state = SessionState::Error;
-                fail!(LlsdErrorKind::HandshakeFailed);
+
+                return Err(LlsdError::InvalidWelcomeFrame);
             }
         } else {
             self.state = SessionState::Error;
-            fail!(LlsdErrorKind::HandshakeFailed);
+            return Err(LlsdError::DecryptionFailed);
         }
     }
 
@@ -93,7 +94,7 @@ impl Session {
     /// session state if so.
     pub fn read_ready(&mut self, ready: &Frame) -> LlsdResult<()> {
         if self.state != SessionState::Fresh || ready.kind != FrameKind::Ready {
-            fail!(LlsdErrorKind::InvalidState)
+            return Err(LlsdError::InvalidSessionState);
         }
         if let Some(msg) = self.read_msg(ready) {
             if msg == READY_PAYLOAD {
@@ -101,7 +102,7 @@ impl Session {
                 return Ok(());
             }
         }
-        fail!(LlsdErrorKind::HandshakeFailed);
+        return Err(LlsdError::InvalidReadyFrame);
     }
 
     // Helper to make a vouch

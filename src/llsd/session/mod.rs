@@ -1,6 +1,6 @@
 
 
-use llsd::errors::{LlsdErrorKind, LlsdResult};
+use llsd::errors::{LlsdError, LlsdResult};
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
 
@@ -51,7 +51,7 @@ pub trait Sendable {
     /// Helper to send a Message Frame.
     fn make_message(&self, data: &[u8]) -> LlsdResult<Frame> {
         if !self.can_send() {
-            fail!(LlsdErrorKind::InvalidState)
+            return Err(LlsdError::InvalidSessionState);
         }
         let (nonce, payload) = self.seal_msg(data);
         let frame = Frame {

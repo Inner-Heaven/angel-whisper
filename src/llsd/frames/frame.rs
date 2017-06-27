@@ -1,6 +1,6 @@
 use bytes::{BufMut, Bytes, BytesMut};
 
-use llsd::errors::{LlsdErrorKind, LlsdResult};
+use llsd::errors::{LlsdError, LlsdResult};
 use nom::{IResult, rest};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey};
 
@@ -100,8 +100,8 @@ impl Frame {
     pub fn from_slice(i: &[u8]) -> LlsdResult<Frame> {
         match parse_frame(i) {
             IResult::Done(_, frame) => Ok(frame),
-            IResult::Incomplete(_) => fail!(LlsdErrorKind::IncompleteFrame),
-            IResult::Error(_) => fail!(LlsdErrorKind::BadFrame),
+            IResult::Incomplete(_) => Err(LlsdError::IncompleteFrame),
+            IResult::Error(_) => Err(LlsdError::BadFrame),
         }
     }
 }
@@ -131,7 +131,7 @@ named!(parse_frame < &[u8], Frame >,
 mod test {
     use super::*;
 
-    use llsd::errors::LlsdErrorKind;
+    use llsd::errors::LlsdError;
     use sodiumoxide::crypto::box_::{gen_keypair, gen_nonce};
 
     #[test]
@@ -153,8 +153,11 @@ mod test {
 
         assert_eq!(parsed_frame.is_err(), true);
         let err = parsed_frame.err().unwrap();
-        assert_eq!(*err, LlsdErrorKind::IncompleteFrame);
-    }
+        match err {
+            LlsdError::IncompleteFrame => assert!(true),
+            _ => panic!("WRONG ERROR KIND"),
+        }
+}
 
     fn make_frame() -> Frame {
         let (pk, _) = gen_keypair();

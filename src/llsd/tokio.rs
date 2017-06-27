@@ -1,7 +1,7 @@
 use byteorder::{BigEndian, ByteOrder};
 use bytes::{BufMut, BytesMut};
 use frames::Frame;
-use llsd::errors::LlsdErrorKind;
+use llsd::errors::LlsdError;
 use std::io;
 use std::result::Result;
 use tokio_io::{AsyncRead, AsyncWrite};
@@ -30,11 +30,11 @@ impl Decoder for FrameCodec {
         match Frame::from_slice(&data[4..]) {
             Ok(frame) => Ok(Some(frame)),
             Err(e) => {
-                if *e == LlsdErrorKind::IncompleteFrame {
-                    Ok(None)
-                } else {
-                    Err(e.into())
+                match e {
+                    LlsdError::IncompleteFrame  => Ok(None),
+                    _                           => Err(io::Error::new(io::ErrorKind::Other, "TODO CHANGE ME"))
                 }
+
             }
         }
     }

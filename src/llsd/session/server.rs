@@ -3,7 +3,7 @@
 use super::{Sendable, SessionState};
 use chrono::{DateTime, Duration};
 use chrono::offset::Utc;
-use llsd::errors::{LlsdErrorKind, LlsdResult};
+use llsd::errors::{LlsdError, LlsdResult};
 
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey, gen_keypair, gen_nonce, open, seal};
@@ -49,7 +49,7 @@ impl Session {
     /// Helper to make a Welcome frame, a reply to Hello frame. Server worflow.
     pub fn make_welcome(&mut self, hello: &Frame, our_sk: &SecretKey) -> LlsdResult<Frame> {
         if self.state != SessionState::Fresh || hello.kind != FrameKind::Hello {
-            fail!(LlsdErrorKind::InvalidState)
+            return Err(LlsdError::InvalidSessionState);
         }
         // Verify content of the box
         if let Ok(payload) = open(&hello.payload, &hello.nonce, &hello.id, our_sk) {
@@ -58,7 +58,7 @@ impl Session {
             // that is what matters the most.
             if payload.len() != 256 {
                 self.state = SessionState::Error;
-                fail!(LlsdErrorKind::HandshakeFailed);
+                return Err(LlsdError::InvalidHelloFrame);
             }
             let nonce = gen_nonce();
             let welcome_box = seal(self.st.0.as_ref(), &nonce, &hello.id, our_sk);
@@ -73,7 +73,7 @@ impl Session {
             Ok(welcome_frame)
         } else {
             self.state = SessionState::Error;
-            fail!(LlsdErrorKind::HandshakeFailed);
+            Err(LlsdError::DecryptionFailed)
         }
     }
     /// A helper to extract client's permamanet public key from initiate frame
@@ -112,13 +112,13 @@ impl Session {
     /// workflow.
     pub fn make_ready(&mut self, initiate: &Frame, client_lt_pk: &PublicKey) -> LlsdResult<Frame> {
         if self.state != SessionState::Fresh || initiate.kind != FrameKind::Initiate {
-            fail!(LlsdErrorKind::InvalidState)
+            return Err(LlsdError::InvalidSessionState);
         }
 
         // If client spend more than 3 minutes to come up with initiate - fuck him.
         let duration_since = Utc::now().signed_duration_since(self.created_at);
         if duration_since > Duration::minutes(3) {
-            fail!(LlsdErrorKind::HandshakeFailed)
+            return Err(LlsdError::ExpiredSession);
         }
         self.state = SessionState::Ready;
         self.client_lt_pk = Some(*client_lt_pk);

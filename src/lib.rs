@@ -10,6 +10,8 @@ extern crate murmurhash64;
 extern crate protobuf;
 #[macro_use]
 extern crate nom;
+#[macro_use]
+extern crate quick_error;
 
 #[cfg(feature = "system-on-tokio")]
 extern crate futures;

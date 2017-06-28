@@ -95,7 +95,7 @@ mod test {
 
     #[test]
     fn test_decode() {
-        let mut buf = BytesMut::new();
+        let mut buf = BytesMut::with_capacity(70);
         let frame = make_frame();
         let mut codec = FrameCodec {};
         // First let's test if it can handle missing len
@@ -142,7 +142,7 @@ mod test {
     #[test]
     fn test_encode() {
         let frame = make_frame();
-        let mut buf = BytesMut::new();
+        let mut buf = BytesMut::with_capacity(0);
         let mut codec = FrameCodec {};
 
         let result = codec.encode(frame.clone(), &mut buf);

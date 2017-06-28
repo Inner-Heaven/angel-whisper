@@ -81,8 +81,6 @@ impl Frame {
     /// the message.
     pub fn pack_to_buf(&self, buf: &mut BytesMut) {
         buf.reserve(self.length());
-        // Unwrap here makes sense, amirite?
-        // kind.write_u8(self.kind as u8).unwrap();
         buf.extend_from_slice(&self.id.0);
         buf.extend_from_slice(&self.nonce.0);
         buf.put_u8(self.kind as u8);

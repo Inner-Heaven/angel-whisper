@@ -151,6 +151,7 @@ mod test {
         let message = FrameKind::from_slice(&[5]).unwrap();
         let termination = FrameKind::from_slice(&[6]).unwrap();
         let bad = FrameKind::from_slice(&[7]);
+        let none = FrameKind::from_slice(&[]);
 
         assert_eq!(hello, FrameKind::Hello);
         assert_eq!(welcome, FrameKind::Welcome);
@@ -159,6 +160,7 @@ mod test {
         assert_eq!(message, FrameKind::Message);
         assert_eq!(termination, FrameKind::Termination);
         assert!(bad.is_none());
+        assert!(none.is_none());
     }
 
     #[test]

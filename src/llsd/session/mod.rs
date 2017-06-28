@@ -73,6 +73,16 @@ mod test {
     use sodiumoxide::crypto::box_::gen_keypair;
 
     #[test]
+    fn test_cant_send_if_not_ready() {
+        let client_lt = gen_keypair();
+        let server_lt = gen_keypair();
+
+        let client_session = ClientSession::new(server_lt.0.clone(), client_lt.clone());
+
+        let err = client_session.make_message(b"wat");
+        assert!(err.is_err());
+    }
+    #[test]
     fn test_successful_hashshake() {
         let client_lt = gen_keypair();
         let server_lt = gen_keypair();

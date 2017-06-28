@@ -144,6 +144,24 @@ mod test {
 
         assert_eq!(frame, parsed_frame.unwrap());
     }
+    #[test]
+    fn frame_kind_from_slice() {
+        let hello = FrameKind::from_slice(&[1]).unwrap();
+        let welcome = FrameKind::from_slice(&[2]).unwrap();
+        let initiate = FrameKind::from_slice(&[3]).unwrap();
+        let ready = FrameKind::from_slice(&[4]).unwrap();
+        let message = FrameKind::from_slice(&[5]).unwrap();
+        let termination = FrameKind::from_slice(&[6]).unwrap();
+        let bad = FrameKind::from_slice(&[7]);
+
+        assert_eq!(hello, FrameKind::Hello);
+        assert_eq!(welcome, FrameKind::Welcome);
+        assert_eq!(initiate, FrameKind::Initiate);
+        assert_eq!(ready, FrameKind::Ready);
+        assert_eq!(message, FrameKind::Message);
+        assert_eq!(termination, FrameKind::Termination);
+        assert!(bad.is_none());
+    }
 
     #[test]
     fn malformed_frame() {

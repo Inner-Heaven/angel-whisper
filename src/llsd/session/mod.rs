@@ -42,7 +42,7 @@ pub trait Sendable {
     /// Return short term public key of the sender side.
     fn id(&self) -> PublicKey;
     /// Decrypt payload of a frame if any.
-    fn read_msg(&self, frame: &Frame) -> Option<Vec<u8>>;
+    fn read_msg(&self, frame: &Frame) -> LlsdResult<Vec<u8>>;
     /// Encrypt payload ot be packed in frame. Should not be used directly.
     fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>);
     /// helper method to check if session is ready to send messages.
@@ -67,9 +67,11 @@ pub trait Sendable {
 mod test {
     use super::Sendable;
 
+    use llsd::frames::{Frame, FrameKind};
     use super::client::Session as ClientSession;
     use super::server::Session as ServerSession;
     use sodiumoxide::crypto::box_::gen_keypair;
+
     #[test]
     fn test_successful_hashshake() {
         let client_lt = gen_keypair();

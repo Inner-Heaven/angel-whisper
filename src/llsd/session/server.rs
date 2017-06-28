@@ -146,11 +146,11 @@ impl Sendable for Session {
         (nonce, payload)
     }
 
-    fn read_msg(&self, frame: &Frame) -> Option<Vec<u8>> {
+    fn read_msg(&self, frame: &Frame) -> LlsdResult<Vec<u8>> {
         if let Ok(msg) = open(&frame.payload, &frame.nonce, &self.client_pk, &self.st.1) {
-            Some(msg)
+            Ok(msg)
         } else {
-            None
+            Err(LlsdError::DecryptionFailed)
         }
     }
 }

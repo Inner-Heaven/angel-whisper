@@ -96,13 +96,13 @@ impl Session {
         if self.state != SessionState::Fresh || ready.kind != FrameKind::Ready {
             return Err(LlsdError::InvalidSessionState);
         }
-        if let Some(msg) = self.read_msg(ready) {
+        let msg = try!(self.read_msg(ready));
             if msg == READY_PAYLOAD {
                 self.state = SessionState::Ready;
                 return Ok(());
+            } else {
+                return Err(LlsdError::InvalidReadyFrame);
             }
-        }
-        return Err(LlsdError::InvalidReadyFrame);
     }
 
     // Helper to make a vouch
@@ -138,15 +138,15 @@ impl Sendable for Session {
         (nonce, payload)
     }
 
-    fn read_msg(&self, frame: &Frame) -> Option<Vec<u8>> {
+    fn read_msg(&self, frame: &Frame) -> LlsdResult<Vec<u8>> {
         if let Ok(msg) = open(&frame.payload,
                            &frame.nonce,
                            &self.server_pk.expect("Shit is on fire yo!"),
                            &self.st.1)
         {
-            Some(msg)
+            Ok(msg)
         } else {
-            None
+            Err(LlsdError::DecryptionFailed)
         }
     }
 }

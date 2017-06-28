@@ -120,10 +120,7 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
                 Err(_) => return Err(AWError::ServerFault),
                 Ok(session) => session,
             };
-            match session.read_msg(frame) {
-                None => return Err(LlsdError::DecryptionFailed.into()),
-                Some(req) => req.to_vec(),
-            }
+            try!(session.read_msg(frame))
         };
         // this is going to take Arc<RWLock<Session>> as argument.
         let res = try!(self.handler

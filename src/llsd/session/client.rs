@@ -99,9 +99,9 @@ impl Session {
         let msg = try!(self.read_msg(ready));
             if msg == READY_PAYLOAD {
                 self.state = SessionState::Ready;
-                return Ok(());
+                Ok(())
             } else {
-                return Err(LlsdError::InvalidReadyFrame);
+                Err(LlsdError::InvalidReadyFrame)
             }
     }
 

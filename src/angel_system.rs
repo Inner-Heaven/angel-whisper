@@ -88,7 +88,7 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
     // TODO: Rewrite this madness
     fn process_initiate(&self, frame: &Frame) -> AWResult<Frame> {
         match self.sessions.find_by_pk(&frame.id) {
-            None => return Err(LlsdError::InvalidSessionState.into()),
+            None => Err(LlsdError::InvalidSessionState.into()),
             Some(session_lock) => {
                 let session_guard = session_lock.write();
                 if let Ok(mut session) = session_guard {

@@ -97,12 +97,12 @@ impl Session {
             return Err(LlsdError::InvalidSessionState);
         }
         let msg = try!(self.read_msg(ready));
-            if msg == READY_PAYLOAD {
-                self.state = SessionState::Ready;
-                Ok(())
-            } else {
-                Err(LlsdError::InvalidReadyFrame)
-            }
+        if msg == READY_PAYLOAD {
+            self.state = SessionState::Ready;
+            Ok(())
+        } else {
+            Err(LlsdError::InvalidReadyFrame)
+        }
     }
 
     // Helper to make a vouch

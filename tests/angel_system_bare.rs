@@ -1,22 +1,19 @@
 extern crate angel_whisper;
-
-use angel_whisper::{AngelSystem, ClientSession, Sendable, ServerSession};
+extern crate bytes;
+extern crate tokio_proto;
+extern crate tokio_io;
+extern crate tokio_core;
+extern crate tokio_service;
+extern crate futures;
+use angel_whisper::{AngelSystem, ClientSession, Sendable};
 
 use angel_whisper::crypto::gen_keypair;
-use angel_whisper::errors::{AWError, AWResult};
 use angel_whisper::frames::FrameKind;
-use angel_whisper::system::ServiceHub;
 use angel_whisper::system::authenticator::DumbAuthenticator;
 use angel_whisper::system::hashmapstore::HashMapStore;
-use std::sync::{Arc, RwLock};
 
-fn ping_pong(_: ServiceHub, _: Arc<RwLock<ServerSession>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
-    if msg == b"ping".to_vec() {
-        Ok(b"pong".to_vec())
-    } else {
-        Err(AWError::NotImplemented)
-    }
-}
+mod support;
+use support::service::EchoHandler;
 
 #[test]
 fn handshake_and_ping_pong() {
@@ -27,7 +24,11 @@ fn handshake_and_ping_pong() {
     let store = HashMapStore::default();
     let authenticator = DumbAuthenticator::new(vec![our_pk]);
 
-    let system = AngelSystem::new(store, authenticator, server_pk, server_sk, ping_pong);
+    let system = AngelSystem::new(store,
+                                  authenticator,
+                                  server_pk,
+                                  server_sk,
+                                  EchoHandler::default());
 
 
     let mut session = ClientSession::new(server_pk, (our_pk, our_sk));

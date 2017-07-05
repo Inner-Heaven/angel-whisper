@@ -15,9 +15,13 @@ sodiumoxide = "0.0.15"
 typemap = "0.3.3"
 uuid = "0.5"
 
-[dependencies.protobuf]
+[dependencies.prost]
 optional = true
-version = "1.0"
+version = "0.1.0"
+
+[dependencies.prost-derive]
+optional = true
+version = "0.1.0"
 
 [dependencies.tokio-core]
 optional = true
@@ -37,4 +41,5 @@ version = "0.1.0"
 
 [features]
 default = ["system-on-tokio"]
+protobuf = ["prost", "prost-derive"]
 system-on-tokio = ["protobuf", "tokio-proto", "tokio-service", "tokio-io", "tokio-core"]

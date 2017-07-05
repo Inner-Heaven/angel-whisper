@@ -66,10 +66,10 @@ pub trait Sendable {
 #[cfg(test)]
 mod test {
     use super::Sendable;
-
-    use llsd::frames::{Frame, FrameKind};
     use super::client::Session as ClientSession;
     use super::server::Session as ServerSession;
+
+    use llsd::frames::{Frame, FrameKind};
     use sodiumoxide::crypto::box_::gen_keypair;
 
     #[test]

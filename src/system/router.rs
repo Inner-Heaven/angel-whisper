@@ -1,18 +1,14 @@
-
-
 use super::{Handler, ServiceHub};
 use byteorder::{BigEndian, ByteOrder};
+
+use bytes::{Bytes, BytesMut};
 use errors::{AWError, AWResult};
 use llsd::session::server::Session;
-
 use murmurhash64::murmur_hash64a as hash;
-use std::collections::HashMap;
-use std::convert::{From, Into};
-use std::default::Default;
+use std::convert::From;
 use std::sync::{Arc, RwLock};
 
 const SEED: u64 = 69;
-const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct Route(u64);
@@ -33,45 +29,36 @@ impl From<String> for Route {
     }
 }
 
-
-#[derive(Clone)]
-pub struct Router {
-    store: Arc<RwLock<HashMap<Route, Box<Handler>>>>,
-}
-
-impl Router {
-    pub fn register_route<R: Into<Route>, H: Handler>(&self, route: R, handler: H) {
-        self.store
-            .write()
-            .expect(POISONED_LOCK_MSG)
-            .insert(route.into(), Box::new(handler));
+pub trait Router: Send + Sync + 'static {
+    fn route_from_payload(&self, payload: &mut BytesMut) -> AWResult<Route> {
+        if payload.len() < 8 {
+            return Err(AWError::InvalidRoute);
+        }
+        let route = payload.split_to(8);
+        let hash = BigEndian::read_u64(&route);
+        Ok(Route::from(hash))
     }
+    fn process(&self,
+               route: Route,
+               services: ServiceHub,
+               session: Arc<RwLock<Session>>,
+               msg: &mut BytesMut)
+               -> AWResult<Bytes>;
 }
-impl Default for Router {
-    fn default() -> Router {
-        Router { store: Arc::new(RwLock::new(HashMap::new())) }
-    }
-}
-
-impl Handler for Router {
+impl<R> Handler for R
+where
+    R: Router,
+{
     fn handle(&self,
               services: ServiceHub,
               session: Arc<RwLock<Session>>,
-              msg: Vec<u8>)
-              -> AWResult<Vec<u8>> {
-        if msg.len() < 8 {
-            return Err(AWError::InvalidRoute);
-        }
-        let route = BigEndian::read_u64(&msg);
-        match self.store
-                  .read()
-                  .expect(POISONED_LOCK_MSG)
-                  .get(&route.into()) {
-            None => Err(AWError::NotImplemented),
-            Some(handler) => handler.handle(services, session, msg),
-        }
+              msg: &mut BytesMut)
+              -> AWResult<Bytes> {
+        let route = self.route_from_payload(msg)?;
+        self.process(route, services, session, msg)
     }
 }
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -92,46 +79,75 @@ mod test {
     fn get_hub() -> ServiceHub {
         Arc::new(RwLock::new(TypeMap::custom()))
     }
-    fn echo(_: ServiceHub, _: Arc<RwLock<Session>>, msg: Vec<u8>) -> AWResult<Vec<u8>> {
-        Ok(msg)
-    }
 
     fn get_session() -> Arc<RwLock<Session>> {
         Arc::new(RwLock::new(Session::default()))
     }
 
 
+
     struct GtfoHandler;
     impl Handler for GtfoHandler {
-        fn handle(&self, _: ServiceHub, _: Arc<RwLock<Session>>, _: Vec<u8>) -> AWResult<Vec<u8>> {
-            Ok(b"gtfo".to_vec())
+        fn handle(&self,
+                  _: ServiceHub,
+                  _: Arc<RwLock<Session>>,
+                  _: &mut BytesMut)
+                  -> AWResult<Bytes> {
+            Ok(Bytes::from(b"gtfo".to_vec()))
         }
     }
     #[test]
     fn echo_router() {
-        let router = Router::default();
-        router.register_route(get_route(), echo);
+        struct Basic {};
+        impl Router for Basic {
+            fn process(&self,
+                       route: Route,
+                       _services: ServiceHub,
+                       _session: Arc<RwLock<Session>>,
+                       _msg: &mut BytesMut)
+                       -> AWResult<Bytes> {
+                           if route == get_route() {
+                               Ok(b"hello".to_vec().into())
+                           } else {
+                               unimplemented!()
+                           }
+            }
+        }
+        let router = Basic {};
 
         let mut req = Vec::new();
         req.write_u64::<BigEndian>(get_route().0).unwrap();
-        req.append(&mut b"hello".to_vec());
+                let hello = b"hello".to_vec();
+        req.append(&mut hello.clone());
 
-        let res = router.handle(get_hub(), get_session(), req.clone());
+        let res = router.handle(get_hub(), get_session(), &mut req.clone().into());
         assert!(res.is_ok());
-        let res_vec = res.unwrap();
+        let res_vec = res.unwrap().to_vec();
 
-        assert_eq!(res_vec, req);
+        assert_eq!(res_vec, hello);
     }
 
     #[test]
     fn gtfo_router() {
-        let router = Router::default();
-        router.register_route(get_route(), GtfoHandler);
+        struct Basic {};
+        impl Router for Basic {
+            fn process(&self,
+                       _route: Route,
+                       services: ServiceHub,
+                       session: Arc<RwLock<Session>>,
+                       msg: &mut BytesMut)
+                       -> AWResult<Bytes> {
+                let handler = GtfoHandler;
+                handler.handle(services, session, msg)
+            }
+        }
+        let router = Basic {};
+
         let mut req = Vec::new();
         req.write_u64::<BigEndian>(get_route().0).unwrap();
         req.append(&mut b"hello".to_vec());
 
-        let res = router.handle(get_hub(), get_session(), req.clone());
+        let res = router.handle(get_hub(), get_session(), &mut req.into());
         assert!(res.is_ok());
         let res_vec = res.unwrap();
 
@@ -139,22 +155,22 @@ mod test {
     }
 
     #[test]
-    fn not_found() {
-        let router = Router::default();
-        let mut req = Vec::new();
-        req.write_u64::<BigEndian>(get_route().0).unwrap();
-        req.append(&mut b"hello".to_vec());
-
-        let res = router.handle(get_hub(), get_session(), req.clone());
-        assert!(res.is_err());
-    }
-
-    #[test]
     fn malformed() {
-        let router = Router::default();
+        struct Basic {};
+        impl Router for Basic {
+            fn process(&self,
+                       _route: Route,
+                       _services: ServiceHub,
+                       _session: Arc<RwLock<Session>>,
+                       _msg: &mut BytesMut)
+                       -> AWResult<Bytes> {
+                unimplemented!();
+            }
+        }
+        let router = Basic {};
         let req = vec![1, 2];
 
-        let res = router.handle(get_hub(), get_session(), req.clone());
+        let res = router.handle(get_hub(), get_session(), &mut req.into());
         assert!(res.is_err());
     }
 }

@@ -123,15 +123,14 @@ impl<S: SessionStore, A: Authenticator, H: Handler> AngelSystem<S, A, H> {
             try!(session.read_msg(frame))
         };
         // this is going to take Arc<RWLock<Session>> as argument.
+        let mut payload = req.into();
         let res = try!(self.handler
-                           .handle(self.services.clone(), session_lock.clone(), req.to_vec()));
+                           .handle(self.services.clone(), session_lock.clone(), &mut payload));
         let session = match session_lock.read() {
             Err(_) => return Err(AWError::ServerFault),
             Ok(session) => session,
         };
-        session
-            .make_message(&res)
-            .map_err(|e| e.into()) 
+        session.make_message(&res).map_err(|e| e.into())
     }
 }
 
@@ -173,7 +172,7 @@ pub mod tokio {
         fn call(&self, req: Self::Request) -> Self::Future {
             match self.system.process(req) {
                 Ok(res) => future::ok(res).boxed(),
-                Err(err) => future::err(io::Error::new(io::ErrorKind::Other, err)).boxed()
+                Err(err) => future::err(io::Error::new(io::ErrorKind::Other, err)).boxed(),
             }
         }
     }

@@ -5,7 +5,6 @@ extern crate byteorder;
 extern crate bytes;
 extern crate typemap;
 extern crate murmurhash64;
-extern crate protobuf;
 #[macro_use]
 extern crate nom;
 #[macro_use]
@@ -21,6 +20,11 @@ extern crate tokio_proto;
 extern crate tokio_service;
 #[cfg(feature = "system-on-tokio")]
 extern crate tokio_core;
+#[cfg(feature = "protobuf")]
+extern crate prost;
+#[cfg(feature = "protobuf")]
+#[macro_use]
+extern crate prost_derive;
 
 /// Honestly I forgot what LLSD stands for. Something like Low-Level System
 /// Description.

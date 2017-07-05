@@ -1,5 +1,5 @@
-message Frame {
-  required int64 id = 1;
-  required string path = 2;
-  required bytes payload = 2;
+package test.calc;
+message  Add {
+  required int64 left = 1;
+  required int64 right = 2;
 }

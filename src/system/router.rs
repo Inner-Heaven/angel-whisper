@@ -84,21 +84,7 @@ mod test {
         Arc::new(RwLock::new(Session::default()))
     }
 
-
-
-    struct GtfoHandler;
-    impl Handler for GtfoHandler {
-        fn handle(&self,
-                  _: ServiceHub,
-                  _: Arc<RwLock<Session>>,
-                  _: &mut BytesMut)
-                  -> AWResult<Bytes> {
-            Ok(Bytes::from(b"gtfo".to_vec()))
-        }
-    }
-    #[test]
-    fn echo_router() {
-        struct Basic {};
+        struct Basic {}
         impl Router for Basic {
             fn process(&self,
                        route: Route,
@@ -113,6 +99,22 @@ mod test {
                            }
             }
         }
+
+    struct GtfoHandler;
+    impl Handler for GtfoHandler {
+        fn handle(&self,
+                  _: ServiceHub,
+                  _: Arc<RwLock<Session>>,
+                  _: &mut BytesMut)
+                  -> AWResult<Bytes> {
+            Ok(Bytes::from(b"gtfo".to_vec()))
+        }
+    }
+    
+    
+    #[test]
+    fn echo_router() {
+
         let router = Basic {};
 
         let mut req = Vec::new();
@@ -156,17 +158,6 @@ mod test {
 
     #[test]
     fn malformed() {
-        struct Basic {};
-        impl Router for Basic {
-            fn process(&self,
-                       _route: Route,
-                       _services: ServiceHub,
-                       _session: Arc<RwLock<Session>>,
-                       _msg: &mut BytesMut)
-                       -> AWResult<Bytes> {
-                unimplemented!();
-            }
-        }
         let router = Basic {};
         let req = vec![1, 2];
 

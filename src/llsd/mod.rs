@@ -11,3 +11,5 @@ pub mod tokio;
 /// This should be a separate crate in the future. Things related to building a
 /// client to `AngelSystem`.
 pub mod client;
+/// Aid in creation of routes for router.
+pub mod route;

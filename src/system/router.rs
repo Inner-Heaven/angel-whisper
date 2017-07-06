@@ -4,33 +4,10 @@ use byteorder::{BigEndian, ByteOrder};
 use bytes::{Bytes, BytesMut};
 use errors::{AWError, AWResult};
 use llsd::session::server::Session;
-use murmurhash64::murmur_hash64a as hash;
+use llsd::route::Route;
 use std::convert::From;
 use std::sync::{Arc, RwLock};
 
-const SEED: u64 = 69;
-
-#[derive(Clone, Hash, Eq, PartialEq)]
-pub struct Route(u64);
-
-impl From<u64> for Route {
-    #[inline]
-    fn from(src: u64) -> Route {
-        Route(src)
-    }
-}
-impl From<&'static str> for Route {
-    #[inline]
-    fn from(src: &'static str) -> Route {
-        Route(hash(src.as_bytes(), SEED))
-    }
-}
-impl From<String> for Route {
-    #[inline]
-    fn from(src: String) -> Route {
-        Route(hash(src.as_bytes(), SEED))
-    }
-}
 
 pub trait Router: Send + Sync + 'static {
     fn route_from_payload(&self, payload: &mut BytesMut) -> AWResult<Route> {
@@ -68,6 +45,7 @@ mod test {
     use byteorder::{BigEndian, WriteBytesExt};
     use errors::AWResult;
     use llsd::session::server::Session;
+    use llsd::route::Route;
 
 
     use std::sync::{Arc, RwLock};
@@ -121,7 +99,7 @@ mod test {
         let router = Basic {};
 
         let mut req = Vec::new();
-        req.write_u64::<BigEndian>(get_route().0).unwrap();
+        req.write_u64::<BigEndian>(get_route().id()).unwrap();
         let hello = b"hello".to_vec();
         req.append(&mut hello.clone());
 
@@ -149,7 +127,7 @@ mod test {
         let router = Basic {};
 
         let mut req = Vec::new();
-        req.write_u64::<BigEndian>(get_route().0).unwrap();
+        req.write_u64::<BigEndian>(get_route().id()).unwrap();
         req.append(&mut b"hello".to_vec());
 
         let res = router.handle(get_hub(), get_session(), &mut req.into());

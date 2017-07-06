@@ -115,16 +115,12 @@ mod test {
     }
     impl RouteAction for EchoAction {
         fn process(&self,
-               _route: &Route,
-               _services: ServiceHub,
-               _session: Arc<RwLock<Session>>,
-               msg: &mut BytesMut)
-               -> AWResult<Bytes> {
-            if msg.clone().to_vec() == b"ping".to_vec() {
-                Ok(b"pong".to_vec().into())
-            } else {
-                Err(AWError::NotImplemented)
-            }
+                   _route: &Route,
+                   _services: ServiceHub,
+                   _session: Arc<RwLock<Session>>,
+                   msg: &mut BytesMut)
+                   -> AWResult<Bytes> {
+            Ok(b"pong".to_vec().into())
         }
     }
 
@@ -136,11 +132,7 @@ mod test {
                    _session: Arc<RwLock<Session>>,
                    _msg: &mut BytesMut)
                    -> AWResult<Bytes> {
-            if route == get_route() {
-                Ok(b"hello".to_vec().into())
-            } else {
-                unimplemented!()
-            }
+            Ok(b"hello".to_vec().into())
         }
     }
 
@@ -214,7 +206,9 @@ mod test {
         router.register_route(get_route(), EchoAction::default());
 
         let mut req_not_found = Vec::new();
-        req_not_found.write_u64::<BigEndian>(Route::from("cnn").id()).unwrap();
+        req_not_found
+            .write_u64::<BigEndian>(Route::from("cnn").id())
+            .unwrap();
         req_not_found.append(&mut b"hello".to_vec());
 
         let not_found = router.handle(get_hub(), get_session(), &mut req_not_found.into());

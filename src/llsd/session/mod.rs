@@ -1,9 +1,9 @@
 
 
+use bytes::{Bytes, BytesMut};
 use llsd::errors::{LlsdError, LlsdResult};
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
-use bytes::{Bytes, BytesMut};
 /// Things that are required to build a client.
 pub mod client;
 /// Things that are required to build a server.
@@ -123,7 +123,8 @@ mod test {
             .make_message(b"Shout it loud and proud")
             .unwrap();
         let from_client_to_server_read = server_session.read_msg(&from_client_to_server).unwrap();
-        assert_eq!(&from_client_to_server_read.as_ref(), b"Shout it loud and proud");
+        assert_eq!(&from_client_to_server_read.as_ref(),
+                   b"Shout it loud and proud");
 
         let from_server_to_client = server_session.make_message(b"I'm the hyper star").unwrap();
         let from_server_to_client_read = client_session.read_msg(&from_server_to_client).unwrap();

@@ -3,7 +3,8 @@ use std::convert::From;
 
 const SEED: u64 = 69;
 
-/// Service that have multiple handlers should use this for addressing. It takes string, hash it with murmur64 and use result (u64) for addressing.
+/// Service that have multiple handlers should use this for addressing. It
+/// takes string, hash it with murmur64 and use result (u64) for addressing.
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct Route(u64);
 impl Route {

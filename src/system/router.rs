@@ -1,13 +1,15 @@
 use super::{Handler, ServiceHub};
 use byteorder::{BigEndian, ByteOrder};
-
 use bytes::{Bytes, BytesMut};
 use errors::{AWError, AWResult};
-use llsd::session::server::Session;
 use llsd::route::Route;
+use llsd::session::server::Session;
+use std::collections::HashMap;
 use std::convert::From;
+use std::default::Default;
 use std::sync::{Arc, RwLock};
 
+const POISONED_LOCK_MSG: &'static str = "Lock was poisoned";
 
 pub trait Router: Send + Sync + 'static {
     fn route_from_payload(&self, payload: &mut BytesMut) -> AWResult<Route> {
@@ -39,13 +41,53 @@ where
     }
 }
 
+pub trait RouteAction: Send + Sync + 'static {
+    fn process(&self,
+               route: &Route,
+               services: ServiceHub,
+               session: Arc<RwLock<Session>>,
+               msg: &mut BytesMut)
+               -> AWResult<Bytes>;
+}
+pub struct DynamicRouter {
+    store: Arc<RwLock<HashMap<Route, Box<RouteAction>>>>,
+}
+impl DynamicRouter {
+    pub fn register_route<R: Into<Route>, H: RouteAction>(&self, route: R, handler: H) {
+        self.store
+            .write()
+            .expect(POISONED_LOCK_MSG)
+            .insert(route.into(), Box::new(handler));
+    }
+}
+
+impl Default for DynamicRouter {
+    fn default() -> DynamicRouter {
+        DynamicRouter { store: Arc::new(RwLock::new(HashMap::new())) }
+    }
+}
+
+impl Router for DynamicRouter {
+    fn process(&self,
+               route: Route,
+               services: ServiceHub,
+               session: Arc<RwLock<Session>>,
+               msg: &mut BytesMut)
+               -> AWResult<Bytes> {
+        match self.store.read().expect(POISONED_LOCK_MSG).get(&route) {
+            None => Err(AWError::NotImplemented),
+            Some(handler) => handler.process(&route, services, session, msg),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use byteorder::{BigEndian, WriteBytesExt};
     use errors::AWResult;
-    use llsd::session::server::Session;
     use llsd::route::Route;
+    use llsd::session::server::Session;
 
 
     use std::sync::{Arc, RwLock};
@@ -65,19 +107,32 @@ mod test {
         Arc::new(RwLock::new(Session::default()))
     }
 
-    struct Basic {}
-    impl Router for Basic {
+    pub struct EchoAction;
+    impl Default for EchoAction {
+        fn default() -> EchoAction {
+            EchoAction {}
+        }
+    }
+    impl RouteAction for EchoAction {
         fn process(&self,
-                   route: Route,
+                   _route: &Route,
                    _services: ServiceHub,
                    _session: Arc<RwLock<Session>>,
                    _msg: &mut BytesMut)
                    -> AWResult<Bytes> {
-            if route == get_route() {
-                Ok(b"hello".to_vec().into())
-            } else {
-                unimplemented!()
-            }
+            Ok(b"pong".to_vec().into())
+        }
+    }
+
+    struct Basic;
+    impl Router for Basic {
+        fn process(&self,
+                   _route: Route,
+                   _services: ServiceHub,
+                   _session: Arc<RwLock<Session>>,
+                   _msg: &mut BytesMut)
+                   -> AWResult<Bytes> {
+            Ok(b"hello".to_vec().into())
         }
     }
 
@@ -96,7 +151,7 @@ mod test {
     #[test]
     fn echo_router() {
 
-        let router = Basic {};
+        let router = Basic;
 
         let mut req = Vec::new();
         req.write_u64::<BigEndian>(get_route().id()).unwrap();
@@ -112,7 +167,7 @@ mod test {
 
     #[test]
     fn gtfo_router() {
-        struct Basic {};
+        struct Basic;
         impl Router for Basic {
             fn process(&self,
                        _route: Route,
@@ -139,10 +194,33 @@ mod test {
 
     #[test]
     fn malformed() {
-        let router = Basic {};
+        let router = Basic;
         let req = vec![1, 2];
 
         let res = router.handle(get_hub(), get_session(), &mut req.into());
         assert!(res.is_err());
+    }
+    #[test]
+    fn dynamic_router() {
+        let router = DynamicRouter::default();
+        router.register_route(get_route(), EchoAction::default());
+
+        let mut req_not_found = Vec::new();
+        req_not_found
+            .write_u64::<BigEndian>(Route::from("cnn").id())
+            .unwrap();
+        req_not_found.append(&mut b"hello".to_vec());
+
+        let not_found = router.handle(get_hub(), get_session(), &mut req_not_found.into());
+        assert!(not_found.is_err());
+
+        let mut req = Vec::new();
+        req.write_u64::<BigEndian>(get_route().id()).unwrap();
+        req.append(&mut b"ping".to_vec());
+
+        let pong_res = router.handle(get_hub(), get_session(), &mut req.into());
+        assert!(pong_res.is_ok());
+        let pong = pong_res.unwrap();
+        assert_eq!(pong.as_ref(), b"pong");
     }
 }

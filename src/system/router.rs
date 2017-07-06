@@ -14,16 +14,19 @@ const SEED: u64 = 69;
 pub struct Route(u64);
 
 impl From<u64> for Route {
+    #[inline]
     fn from(src: u64) -> Route {
         Route(src)
     }
 }
 impl From<&'static str> for Route {
+    #[inline]
     fn from(src: &'static str) -> Route {
         Route(hash(src.as_bytes(), SEED))
     }
 }
 impl From<String> for Route {
+    #[inline]
     fn from(src: String) -> Route {
         Route(hash(src.as_bytes(), SEED))
     }

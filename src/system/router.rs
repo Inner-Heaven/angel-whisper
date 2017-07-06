@@ -118,16 +118,16 @@ mod test {
                    _route: &Route,
                    _services: ServiceHub,
                    _session: Arc<RwLock<Session>>,
-                   msg: &mut BytesMut)
+                   _msg: &mut BytesMut)
                    -> AWResult<Bytes> {
             Ok(b"pong".to_vec().into())
         }
     }
 
-    struct Basic {}
+    struct Basic;
     impl Router for Basic {
         fn process(&self,
-                   route: Route,
+                   _route: Route,
                    _services: ServiceHub,
                    _session: Arc<RwLock<Session>>,
                    _msg: &mut BytesMut)
@@ -151,7 +151,7 @@ mod test {
     #[test]
     fn echo_router() {
 
-        let router = Basic {};
+        let router = Basic;
 
         let mut req = Vec::new();
         req.write_u64::<BigEndian>(get_route().id()).unwrap();
@@ -167,7 +167,7 @@ mod test {
 
     #[test]
     fn gtfo_router() {
-        struct Basic {};
+        struct Basic;
         impl Router for Basic {
             fn process(&self,
                        _route: Route,
@@ -194,7 +194,7 @@ mod test {
 
     #[test]
     fn malformed() {
-        let router = Basic {};
+        let router = Basic;
         let req = vec![1, 2];
 
         let res = router.handle(get_hub(), get_session(), &mut req.into());

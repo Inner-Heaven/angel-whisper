@@ -84,21 +84,21 @@ mod test {
         Arc::new(RwLock::new(Session::default()))
     }
 
-        struct Basic {}
-        impl Router for Basic {
-            fn process(&self,
-                       route: Route,
-                       _services: ServiceHub,
-                       _session: Arc<RwLock<Session>>,
-                       _msg: &mut BytesMut)
-                       -> AWResult<Bytes> {
-                           if route == get_route() {
-                               Ok(b"hello".to_vec().into())
-                           } else {
-                               unimplemented!()
-                           }
+    struct Basic {}
+    impl Router for Basic {
+        fn process(&self,
+                   route: Route,
+                   _services: ServiceHub,
+                   _session: Arc<RwLock<Session>>,
+                   _msg: &mut BytesMut)
+                   -> AWResult<Bytes> {
+            if route == get_route() {
+                Ok(b"hello".to_vec().into())
+            } else {
+                unimplemented!()
             }
         }
+    }
 
     struct GtfoHandler;
     impl Handler for GtfoHandler {
@@ -110,8 +110,8 @@ mod test {
             Ok(Bytes::from(b"gtfo".to_vec()))
         }
     }
-    
-    
+
+
     #[test]
     fn echo_router() {
 
@@ -119,7 +119,7 @@ mod test {
 
         let mut req = Vec::new();
         req.write_u64::<BigEndian>(get_route().0).unwrap();
-                let hello = b"hello".to_vec();
+        let hello = b"hello".to_vec();
         req.append(&mut hello.clone());
 
         let res = router.handle(get_hub(), get_session(), &mut req.clone().into());

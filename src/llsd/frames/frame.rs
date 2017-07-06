@@ -64,7 +64,7 @@ pub struct Frame {
     /// Message type as u8 BigEndian. 1 byte
     pub kind: FrameKind,
     /// Payload (that may or may not be encrypted)
-    pub payload: Vec<u8>,
+    pub payload: Bytes,
 }
 
 /// Main unit of information passed from client to server. This thing doesn't
@@ -118,7 +118,7 @@ named!(parse_frame < &[u8], Frame >,
                    id: pk,
                    nonce: nonce,
                    kind: kind,
-                   payload: vec
+                   payload: vec.into()
                }
            })
            )
@@ -186,7 +186,7 @@ mod test {
             id: pk,
             nonce: nonce,
             kind: FrameKind::Hello,
-            payload: payload,
+            payload: payload.into(),
         }
     }
 }

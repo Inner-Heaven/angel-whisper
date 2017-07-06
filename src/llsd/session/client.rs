@@ -7,7 +7,7 @@ use llsd::errors::{LlsdError, LlsdResult};
 
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, gen_keypair, gen_nonce, open, seal};
-
+use bytes::{Bytes, BytesMut};
 const READY_PAYLOAD: &'static [u8; 16] = b"My body is ready";
 
 
@@ -46,7 +46,7 @@ impl Session {
             id: self.st.0,
             nonce: nonce,
             kind: FrameKind::Hello,
-            payload: payload,
+            payload: payload.into(),
         }
     }
     /// Helper to make am Initiate frame, a reply to Welcome frame. Client
@@ -76,7 +76,7 @@ impl Session {
                     id: welcome.id,
                     nonce: nonce,
                     kind: FrameKind::Initiate,
-                    payload: payload,
+                    payload: payload.into(),
                 };
                 Ok(frame)
             } else {
@@ -97,7 +97,7 @@ impl Session {
             return Err(LlsdError::InvalidSessionState);
         }
         let msg = try!(self.read_msg(ready));
-        if msg == READY_PAYLOAD {
+        if msg.as_ref() == READY_PAYLOAD {
             self.state = SessionState::Ready;
             Ok(())
         } else {
@@ -132,19 +132,19 @@ impl Sendable for Session {
         self.state == SessionState::Ready && self.expire_at > Utc::now()
     }
 
-    fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>) {
+    fn seal_msg(&self, data: &[u8]) -> (Nonce, Bytes) {
         let nonce = gen_nonce();
         let payload = seal(data, &nonce, &self.server_pk.unwrap(), &self.st.1);
-        (nonce, payload)
+        (nonce, payload.into())
     }
 
-    fn read_msg(&self, frame: &Frame) -> LlsdResult<Vec<u8>> {
+    fn read_msg(&self, frame: &Frame) -> LlsdResult<BytesMut> {
         if let Ok(msg) = open(&frame.payload,
                            &frame.nonce,
                            &self.server_pk.expect("Shit is on fire yo!"),
                            &self.st.1)
         {
-            Ok(msg)
+            Ok(msg.into())
         } else {
             Err(LlsdError::DecryptionFailed)
         }

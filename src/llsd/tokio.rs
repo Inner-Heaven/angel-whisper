@@ -89,7 +89,7 @@ mod test {
             id: pk,
             nonce: nonce,
             kind: FrameKind::Hello,
-            payload: payload,
+            payload: payload.into(),
         }
     }
 

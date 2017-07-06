@@ -4,7 +4,7 @@ use super::{Sendable, SessionState};
 use chrono::{DateTime, Duration};
 use chrono::offset::Utc;
 use llsd::errors::{LlsdError, LlsdResult};
-
+use bytes::{Bytes, BytesMut};
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey, gen_keypair, gen_nonce, open, seal};
 
@@ -68,7 +68,7 @@ impl Session {
                 id: hello.id,
                 nonce: nonce,
                 kind: FrameKind::Welcome,
-                payload: welcome_box,
+                payload: welcome_box.into(),
             };
             Ok(welcome_frame)
         } else {
@@ -140,15 +140,15 @@ impl Sendable for Session {
         self.state == SessionState::Ready
     }
 
-    fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>) {
+    fn seal_msg(&self, data: &[u8]) -> (Nonce, Bytes) {
         let nonce = gen_nonce();
         let payload = seal(data, &nonce, &self.client_pk, &self.st.1);
-        (nonce, payload)
+        (nonce, payload.into())
     }
 
-    fn read_msg(&self, frame: &Frame) -> LlsdResult<Vec<u8>> {
+    fn read_msg(&self, frame: &Frame) -> LlsdResult<BytesMut> {
         if let Ok(msg) = open(&frame.payload, &frame.nonce, &self.client_pk, &self.st.1) {
-            Ok(msg)
+            Ok(msg.into())
         } else {
             Err(LlsdError::DecryptionFailed)
         }

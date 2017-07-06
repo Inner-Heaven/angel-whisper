@@ -3,7 +3,7 @@
 use llsd::errors::{LlsdError, LlsdResult};
 use llsd::frames::{Frame, FrameKind};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
-
+use bytes::{Bytes, BytesMut};
 /// Things that are required to build a client.
 pub mod client;
 /// Things that are required to build a server.
@@ -42,9 +42,9 @@ pub trait Sendable {
     /// Return short term public key of the sender side.
     fn id(&self) -> PublicKey;
     /// Decrypt payload of a frame if any.
-    fn read_msg(&self, frame: &Frame) -> LlsdResult<Vec<u8>>;
+    fn read_msg(&self, frame: &Frame) -> LlsdResult<BytesMut>;
     /// Encrypt payload ot be packed in frame. Should not be used directly.
-    fn seal_msg(&self, data: &[u8]) -> (Nonce, Vec<u8>);
+    fn seal_msg(&self, data: &[u8]) -> (Nonce, Bytes);
     /// helper method to check if session is ready to send messages.
     fn can_send(&self) -> bool;
 
@@ -123,10 +123,10 @@ mod test {
             .make_message(b"Shout it loud and proud")
             .unwrap();
         let from_client_to_server_read = server_session.read_msg(&from_client_to_server).unwrap();
-        assert_eq!(&from_client_to_server_read, b"Shout it loud and proud");
+        assert_eq!(&from_client_to_server_read.as_ref(), b"Shout it loud and proud");
 
         let from_server_to_client = server_session.make_message(b"I'm the hyper star").unwrap();
         let from_server_to_client_read = client_session.read_msg(&from_server_to_client).unwrap();
-        assert_eq!(&from_server_to_client_read, b"I'm the hyper star");
+        assert_eq!(&from_server_to_client_read.as_ref(), b"I'm the hyper star");
     }
 }

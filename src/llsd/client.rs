@@ -1,22 +1,52 @@
-
-
+use byteorder::BigEndian;
+use bytes::{Bytes, BytesMut};
+use bytes::BufMut;
 use futures::Poll;
 use futures::future;
 use futures::future::Future;
+use llsd::errors::LlsdError;
 use llsd::frames::Frame;
+use llsd::route::Route;
 use llsd::session::KeyPair;
+use llsd::session::Sendable;
 use llsd::session::client::Session;
 use sodiumoxide::crypto::box_::PublicKey;
 use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
 
+/// See Into<T> from std lib. Created own trait so I can implement it for types
+/// that I don't own...like Message from prost trait.
+pub trait IntoBytes {
+    /// Consume self and return Bytes.
+    fn into_bytes(self) -> Bytes;
+}
+
+impl IntoBytes for Bytes {
+    fn into_bytes(self) -> Bytes {
+        self
+    }
+}
+
+/// See From<T> from std lib. Created own trait jso I can implement it for
+/// types that I don't own...like Message from prost trait.
+pub trait FromBytes {
+    /// consume BytesMut and return Self.
+    fn from(bytes: BytesMut) -> Self;
+}
+
+impl FromBytes for BytesMut {
+    fn from(bytes: BytesMut) -> BytesMut {
+        bytes
+    }
+}
+
 /// Enum to describe what state connection is.
 #[derive(PartialEq)]
 pub enum ConnectionState {
     /// Has what looks like a valid (not expired and authenticated) session.
     Ready,
-    /// Doesn't have session or session is expired.
+    /// Doesn't have session or session expired.
     NotReady,
 }
 /// Engine is the core of client. See module level documentation.
@@ -40,10 +70,10 @@ pub trait Engine {
         Session::new(self.server_public_key(), self.our_long_term_keys())
     }
 
-    /// Make an RPC. This call verify that connection is in the right state.
-    fn request(&self, req: Frame) -> FutureResponse {
+    /// Make a call. This call verify that connection is in the right state.
+    fn call(&self, req: Frame) -> FutureResponse {
         if self.connection_state() == ConnectionState::Ready {
-            self.call(req)
+            self.call_raw(req)
         } else {
             let err = io::Error::new(io::ErrorKind::Other, "Invalid state");
             let f = future::err(err);
@@ -51,11 +81,63 @@ pub trait Engine {
         }
     }
 
-    /// Make and RPC. This call doesn't take care of handshake and session;
+    /// Make a call. This call doesn't take care of handshake and session;
     /// regeneration.
-    fn call(&self, req: Frame) -> FutureResponse;
-}
+    fn call_raw(&self, req: Frame) -> FutureResponse;
+    /// The same as Engine#call, but takes raw payload, returns raw payload and
+    /// provide LlsdError instead of io::Error. You can use this the build your
+    /// client.
+    fn request_bytes(&mut self, route: Option<Route>, payload: Bytes) -> RequestResult<BytesMut> {
+        self.request(route, payload)
+    }
+    /// Sugar coated request_bytes method. The difference is that it takes
+    /// anything that implements IntoBytes as request and returns
+    /// anything that implements FromBytes.
+    fn request<Req: IntoBytes, Res: 'static + FromBytes + Sized>(&mut self,
+                                                                 route: Option<Route>,
+                                                                 req: Req)
+                                                                 -> RequestResult<Res> {
+        if self.connection_state() == ConnectionState::Ready {
+            let payload = {
+                match route {
+                    None => req.into_bytes(),
+                    Some(r) => {
+                        let bytes = req.into_bytes();
+                        let mut ret = BytesMut::with_capacity(8 + bytes.len());
+                        ret.put_u64::<BigEndian>(r.id());
+                        ret.extend(bytes);
+                        ret.freeze()
+                    }
+                }
+            };
+            let session = self.session().clone();
+            let frame = session
+                .borrow_mut()
+                .make_message(&payload)
+                .expect("Failed to create Message Frame");
+            let f = self.call_raw(frame)
+                .then(move |resp| match resp {
+                          Err(e) => future::err(LlsdError::from(e)),
+                          Ok(frame) => {
+                              let session = session.clone();
+                              let payload = session
+                                  .borrow_mut()
+                                  .read_msg(&frame)
+                                  .expect("Failed to read the message");
+                              future::ok(Res::from(payload))
+                          }
+                      });
 
+            RequestResult(Box::new(f))
+        } else {
+            let err = LlsdError::InvalidSessionState;
+            let f = future::err(err);
+            RequestResult(Box::new(f))
+        }
+    }
+}
+/// Future that return by Engine#request method.
+pub struct RequestResult<Res: FromBytes + Sized>(Box<Future<Item = Res, Error = LlsdError> + 'static>);
 /// Future reprensenting the result of RPC call.
 pub struct FutureResponse(Box<Future<Item = Frame, Error = io::Error> + 'static>);
 /// Future representing the result of handshake.
@@ -72,6 +154,14 @@ impl Future for FutureResponse {
 impl Future for FutureHandshake {
     type Item = ();
     type Error = io::Error;
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.0.poll()
+    }
+}
+
+impl<Res: FromBytes + Sized> Future for RequestResult<Res> {
+    type Item = Res;
+    type Error = LlsdError;
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         self.0.poll()
     }
@@ -201,7 +291,7 @@ pub mod tokio {
             FutureHandshake(Box::new(handshake))
         }
 
-        fn call(&self, req: Frame) -> FutureResponse {
+        fn call_raw(&self, req: Frame) -> FutureResponse {
             let service = self.inner.clone();
             let f = service.borrow().call(req);
 

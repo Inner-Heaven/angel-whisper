@@ -109,7 +109,7 @@ mod test {
 
         let ready_frame = server_session
             .make_ready(&initiate_frame, &client_lt_pk)
-            .expect("Failed to create readu frame");
+            .expect("Failed to create ready frame");
 
 
         assert!(client_session.read_ready(&ready_frame).is_ok());

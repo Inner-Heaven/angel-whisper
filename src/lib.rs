@@ -1,3 +1,7 @@
+#![feature(plugin, custom_derive)]
+#![plugin(mockers_macros)]
+
+
 extern crate sodiumoxide;
 extern crate uuid;
 extern crate chrono;
@@ -25,6 +29,9 @@ extern crate prost;
 #[cfg(feature = "protobuf")]
 #[macro_use]
 extern crate prost_derive;
+
+#[cfg(test)]
+extern crate mockers;
 
 /// Honestly I forgot what LLSD stands for. Something like Low-Level System
 /// Description.

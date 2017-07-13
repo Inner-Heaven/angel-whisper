@@ -8,6 +8,7 @@ byteorder = "1.0.0"
 bytes = "0.4"
 chrono = "0.4"
 futures = "0.1"
+mockers_macros = "0.6.1"
 murmurhash64 = "0.3.1"
 nom = "3.0"
 quick-error = "1.2.0"
@@ -38,6 +39,9 @@ version = "0.1.1"
 [dependencies.tokio-service]
 optional = true
 version = "0.1.0"
+
+[dev-dependencies]
+mockers = "0.6.1"
 
 [features]
 default = ["system-on-tokio"]

@@ -9,7 +9,7 @@ pub const HEADER_SIZE: usize = 57;
 
 
 /// Frame type.
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy, Eq, Hash)]
 pub enum FrameKind {
     /// Initial frame. Sent from client.
     Hello = 1,
@@ -55,7 +55,7 @@ impl FrameKind {
 /// care what payload it as long as Frame has correct header.
 /// This way you can used whatever you want as your internal message format —
 /// JSON, BSON, TSV, Protocol Buffers, etc.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct Frame {
     /// Session identificator. 32 bytes
     pub id: PublicKey,

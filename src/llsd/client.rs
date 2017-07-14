@@ -91,7 +91,7 @@ where
                     Some(r) => {
                         let bytes = req.into_bytes();
                         let mut ret = BytesMut::with_capacity(8 + bytes.len());
-                        ret.put_u64::<BigEndian>(r.id());
+                        ret.put_u64::<BigEndian>(r.as_u64());
                         ret.extend(bytes);
                         ret.freeze()
                     }

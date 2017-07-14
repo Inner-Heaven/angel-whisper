@@ -93,23 +93,19 @@ mod test {
         let hello_frame = client_session.make_hello();
 
         let welcome_frame = server_session
-            .make_welcome(&hello_frame, &server_lt.1)
-            .expect("Failed to create welcome");
+            .make_welcome(&hello_frame, &server_lt.1).unwrap();
 
         let initiate_frame = client_session
-            .make_initiate(&welcome_frame)
-            .expect("Failed to create initiate");
+            .make_initiate(&welcome_frame).unwrap();
 
         assert!(!client_session.can_send());
         assert!(!server_session.can_send());
         let client_lt_pk = server_session
-            .validate_initiate(&initiate_frame)
-            .expect("Failed to validate initiate frame");
+            .validate_initiate(&initiate_frame).unwrap();
         assert_eq!(&client_lt_pk, &client_lt.0);
 
         let ready_frame = server_session
-            .make_ready(&initiate_frame, &client_lt_pk)
-            .expect("Failed to create ready frame");
+            .make_ready(&initiate_frame, &client_lt_pk).unwrap();
 
 
         assert!(client_session.read_ready(&ready_frame).is_ok());

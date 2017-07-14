@@ -1,16 +1,10 @@
 language: rust
 rust:
-  - stable
-  - beta
   - nightly
 os:
   - linux
 cache:
   cargo: true
-
-matrix:
-  allow_failures:
-    - rust: nightly
 addons:
   apt:
     packages:
@@ -44,7 +38,7 @@ script:
 after_success:
 # measure code coverage and upload to coveralls.io
   - | 
-      if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "stable" ]]; then
+      if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
           wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
           tar xzf master.tar.gz &&
           cd kcov-master &&

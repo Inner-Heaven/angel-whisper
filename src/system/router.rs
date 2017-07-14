@@ -154,7 +154,7 @@ mod test {
         let router = Basic;
 
         let mut req = Vec::new();
-        req.write_u64::<BigEndian>(get_route().id()).unwrap();
+        req.write_u64::<BigEndian>(get_route().as_u64()).unwrap();
         let hello = b"hello".to_vec();
         req.append(&mut hello.clone());
 
@@ -182,7 +182,7 @@ mod test {
         let router = Basic {};
 
         let mut req = Vec::new();
-        req.write_u64::<BigEndian>(get_route().id()).unwrap();
+        req.write_u64::<BigEndian>(get_route().as_u64()).unwrap();
         req.append(&mut b"hello".to_vec());
 
         let res = router.handle(get_hub(), get_session(), &mut req.into());
@@ -207,7 +207,7 @@ mod test {
 
         let mut req_not_found = Vec::new();
         req_not_found
-            .write_u64::<BigEndian>(Route::from("cnn").id())
+            .write_u64::<BigEndian>(Route::from("cnn").as_u64())
             .unwrap();
         req_not_found.append(&mut b"hello".to_vec());
 
@@ -215,7 +215,7 @@ mod test {
         assert!(not_found.is_err());
 
         let mut req = Vec::new();
-        req.write_u64::<BigEndian>(get_route().id()).unwrap();
+        req.write_u64::<BigEndian>(get_route().as_u64()).unwrap();
         req.append(&mut b"ping".to_vec());
 
         let pong_res = router.handle(get_hub(), get_session(), &mut req.into());

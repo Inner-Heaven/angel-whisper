@@ -369,20 +369,16 @@ mod test {
                     server_lt_secret: &SecretKey) {
         let hello_frame = client_session.make_hello();
         let welcome_frame = server_session
-            .make_welcome(&hello_frame, &server_lt_secret)
-            .expect("Failed to create welcome");
+            .make_welcome(&hello_frame, &server_lt_secret).unwrap();
 
         let initiate_frame = client_session
-            .make_initiate(&welcome_frame)
-            .expect("Failed to create initiate");
+            .make_initiate(&welcome_frame).unwrap();
 
         let client_lt_pk = server_session
-            .validate_initiate(&initiate_frame)
-            .expect("Failed to validate initiate frame");
+            .validate_initiate(&initiate_frame).unwrap();
 
         let ready_frame = server_session
-            .make_ready(&initiate_frame, &client_lt_pk)
-            .expect("Failed to create ready frame");
+            .make_ready(&initiate_frame, &client_lt_pk).unwrap();
         client_session.read_ready(&ready_frame).unwrap();
     }
 
@@ -416,13 +412,11 @@ mod test {
                             .and_call(move |req| {
             let server_session = server_session.clone();
             let payload = server_session
-                .read_msg(&req)
-                .expect("Failed to read message");
+                .read_msg(&req).unwrap();
             assert_eq!(payload.len(), 0);
 
             let resp = server_session
-                .make_message(b"well hello")
-                .expect("failed to create message");
+                .make_message(b"well hello").unwrap();
             FutureResponse(Box::new(future::ok(resp)))
         }));
         scenario.expect(engine.session_call().and_return(session));
@@ -454,15 +448,13 @@ mod test {
                             .and_call(move |req| {
             let server_session = server_session.clone();
             let payload = server_session
-                .read_msg(&req)
-                .expect("Failed to read message");
+                .read_msg(&req).unwrap();
             assert_eq!(payload.len(), 8);
             let hash = BigEndian::read_u64(&payload);
             let dst = Route::from(hash);
             assert_eq!(dst, route.clone());
             let resp = server_session
-                .make_message(b"well hello")
-                .expect("failed to create message");
+                .make_message(b"well hello").unwrap();
             FutureResponse(Box::new(future::ok(resp)))
         }));
         scenario.expect(engine.session_call().and_return(session));

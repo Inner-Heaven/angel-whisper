@@ -20,12 +20,12 @@ addons:
       - sourceline: ppa:chris-lea/libsodium
       - kalakris-cmake
 # Add clippy
-before_script:
-  - |
-      if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
-        ( ( cargo install clippy && export CLIPPY=true ) || export CLIPPY=false );
-      fi
-  - export PATH=$PATH:~/.cargo/bin
+#before_script:
+#  - |
+#      if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
+#        ( ( cargo install clippy && export CLIPPY=true ) || export CLIPPY=false );
+#      fi
+#  - export PATH=$PATH:~/.cargo/bin
 # the main build
 script:
   - |
@@ -50,10 +50,12 @@ after_success:
           cd ../.. &&
           rm -rf kcov-master &&
           rm -rf target/debug/* &&
-          cargo test --no-run --lib &&
-          for file in target/debug/angel_whisper-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --coveralls-id=$TRAVIS_JOB_ID --verify "target/cov/$(basename $file)" "$file"; done ;
-          for file in target/debug/angel_system_bare--*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --coveralls-id=$TRAVIS_JOB_ID --verify "target/cov/$(basename $file)" "$file"; done ;
-          for file in target/debug/system_on_tokio-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --coveralls-id=$TRAVIS_JOB_ID --verify "target/cov/$(basename $file)" "$file"; done ;
+          cargo test --no-run -- -Zprofile &&
+          for file in target/debug/angel_whisper-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/lib" "$file"; done ;
+          for file in target/debug/angel_system_bare-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/bare" "$file"; done ;
+          for file in target/debug/system_on_tokio-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/tokio" "$file"; done ;
+          kcov --merge /tmp/kcov --coveralls-id=$TRAVIS_JOB_ID target/cov/lib target/cov/tokio target/cov/bare
+          
           bash <(curl -s https://codecov.io/bash)
           echo "Uploaded code coverage"
       fi

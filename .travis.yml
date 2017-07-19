@@ -16,7 +16,6 @@ addons:
       - cmake
       - gcc
       - zlib1g-dev
-      - gcov
       - lcov
     sources:
       - sourceline: ppa:chris-lea/libsodium

@@ -16,6 +16,7 @@ addons:
       - cmake
       - gcc
       - zlib1g-dev
+      - libllvm4.0
     sources:
       - sourceline: ppa:chris-lea/libsodium
       - kalakris-cmake
@@ -36,6 +37,6 @@ script:
       cargo build &&
       cargo test
 after_success:
-  - find / -name "clang_rt.profile-x86_64" -exec readlink -f {} \;
+  - find /usr -name "clang_rt.profile-x86_64" -exec readlink -f {} \;
   - scripts/collect-coverage
   - rm -rf target/

@@ -16,12 +16,14 @@ addons:
       - cmake
       - gcc
       - zlib1g-dev
+      - gcov
+      - lcov
     sources:
       - sourceline: ppa:chris-lea/libsodium
       - kalakris-cmake
 before_script:
 - rustc -vV
-- find /usr -name "clang_rt.profile-x86_64" -exec readlink -f {} \;
+- apt-cache search llvm
 # Add clippy
 #before_script:
 #  - |

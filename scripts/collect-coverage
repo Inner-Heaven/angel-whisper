@@ -2,9 +2,8 @@
 
 # Based on https://jbp.io/2017/07/19/measuring-test-coverage-of-rust-programs
 
-export COVERAGE_OPTIONS="-Ccodegen-units=1 -Clink-dead-code \
-  -Cpasses=insert-gcov-profiling -Zno-landing-pads -Zprofile"
-export RUSTC_WRAPPER="./scripts/coverage-rustc"
+export COVERAGE_OPTIONS="-Clink-dead-code -Zno-landing-pads -Zprofile"
+  export RUSTC_WRAPPER="./scripts/coverage-rustc"
 function unit_test {
   cleanup
   cargo rustc --all-features --profile test --lib
@@ -55,5 +54,5 @@ function combine_and_reduce {
 
 unit_test
 integration_test angel_system_bare
-integration_test system-on-tokio
+integration_test system_on_tokio
 combine_and_reduce

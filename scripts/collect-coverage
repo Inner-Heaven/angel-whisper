@@ -2,18 +2,16 @@
 
 # Based on https://jbp.io/2017/07/19/measuring-test-coverage-of-rust-programs
 
-export COVERAGE_OPTIONS="-Clink-dead-code -Zno-landing-pads -Zprofile"
-  export RUSTC_WRAPPER="./scripts/coverage-rustc"
 function unit_test {
   cleanup
-  cargo rustc --all-features --profile test --lib
+  cargo test --lib --no-run -- -Clink-dead-code -Zno-landing-pads -Zprofile
   sh target/debug/angel_whisper-*[^\.d]
   collect angel_whisper
 }
 
 function integration_test {
   cleanup
-  cargo rustc --all-features --profile dev --test $1
+  cargo test $1 -- -Clink-dead-code -Zno-landing-pads -Zprofile
   collect $1
   sh target/debug/$1-*[^\.d]
 }

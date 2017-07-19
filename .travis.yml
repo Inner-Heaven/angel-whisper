@@ -16,10 +16,8 @@ addons:
       - cmake
       - gcc
       - zlib1g-dev
-      - llvm-toolchain-4.0 
     sources:
       - sourceline: ppa:chris-lea/libsodium
-      - sourceline: ppa:xorg-edgers/ppa
       - kalakris-cmake
 before_script:
 - rustc -vV

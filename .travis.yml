@@ -37,6 +37,7 @@ script:
       cargo build &&
       cargo test
 after_success:
+  - rustc -vV
   - find /usr -name "clang_rt.profile-x86_64" -exec readlink -f {} \;
   - scripts/collect-coverage
   - rm -rf target/

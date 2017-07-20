@@ -50,12 +50,11 @@ after_success:
           cd ../.. &&
           rm -rf kcov-master &&
           rm -rf target/debug/* &&
-          cargo test --no-run -- -Zprofile &&
+          cargo test --no-run -- -Zprofile -Zno-landing-pads -Cpasses=insert-gcov-profiling --Clink-dead-code &&
           for file in target/debug/angel_whisper-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/lib" "$file"; done ;
           for file in target/debug/angel_system_bare-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/bare" "$file"; done ;
           for file in target/debug/system_on_tokio-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/tokio" "$file"; done ;
           kcov --merge /tmp/kcov --coveralls-id=$TRAVIS_JOB_ID target/cov/lib target/cov/tokio target/cov/bare
-          
           bash <(curl -s https://codecov.io/bash)
           echo "Uploaded code coverage"
       fi

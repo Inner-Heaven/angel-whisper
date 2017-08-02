@@ -1,3 +1,4 @@
+#![deny(missing_debug_implementations)]
 #![feature(plugin, custom_derive)]
 #![plugin(mockers_macros)]
 
